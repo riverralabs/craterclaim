@@ -1,0 +1,28 @@
+import Link from "next/link";
+
+export function Footer() {
+  return (
+    <footer className="border-t border-white/10 bg-space px-4 py-8 text-sm text-lunar-silver">
+      <div className="mx-auto flex max-w-6xl flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="font-heading text-base text-electric-white">CraterClaim</p>
+          <p className="mt-1 max-w-md leading-relaxed">
+            Digital lunar plots on a public Moon map. Not physical land, not advertising,
+            and not a promise of traffic or rankings.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-x-5 gap-y-2">
+          <Link href="/how-it-works" className="cursor-pointer hover:text-electric-white">
+            How It Works
+          </Link>
+          <Link href="/leaderboard" className="cursor-pointer hover:text-electric-white">
+            Leaderboard
+          </Link>
+          <Link href="/recent" className="cursor-pointer hover:text-electric-white">
+            Recent Claims
+          </Link>
+        </div>
+      </div>
+    </footer>
+  );
+}
