@@ -66,7 +66,7 @@ async function AccountBody({ email, ownerId }: { email: string | null; ownerId: 
     <div className="mt-6">
       <div className="flex flex-wrap items-center gap-3">
         <p className="font-mono text-sm tracking-[0.08em] text-lunar-silver">{email}</p>
-        <form action={() => signOut("/")}>
+        <form action={signOut}>
           <Button
             type="submit"
             variant="outline"

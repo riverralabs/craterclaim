@@ -39,7 +39,7 @@ export function AuthMenu({ compact = false }: { compact?: boolean }) {
           <Link href="/account" className="flex min-h-11 items-center px-2 text-base text-electric-white">
             Account
           </Link>
-          <form action={() => signOut("/")}>
+          <form action={signOut}>
             <button
               type="submit"
               className="flex min-h-11 w-full cursor-pointer items-center px-2 text-left text-sm text-lunar-silver"
@@ -59,7 +59,7 @@ export function AuthMenu({ compact = false }: { compact?: boolean }) {
         >
           {email}
         </Link>
-        <form action={() => signOut("/")}>
+        <form action={signOut}>
           <Button
             type="submit"
             variant="ghost"

@@ -103,10 +103,10 @@ export async function signUpWithEmail(
   redirect(safeNext(nextPath));
 }
 
-export async function signOut(nextPath = "/") {
+export async function signOut() {
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
     await supabase.auth.signOut();
   }
-  redirect(safeNext(nextPath));
+  redirect("/");
 }
