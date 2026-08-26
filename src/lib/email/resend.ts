@@ -1,5 +1,4 @@
 import { Resend } from "resend";
-import { renderShareCard } from "@/lib/plots/render-share-card";
 import type { PlotRecord } from "@/types";
 
 export function resendConfigured() {
@@ -21,6 +20,7 @@ export async function sendLandingLiveEmail(to: string, plot: PlotRecord) {
   const name = plot.name ?? plot.id;
   let cardPng: Buffer | null = null;
   try {
+    const { renderShareCard } = await import("@/lib/plots/render-share-card");
     const image = await renderShareCard(plot);
     cardPng = Buffer.from(await image.arrayBuffer());
   } catch {

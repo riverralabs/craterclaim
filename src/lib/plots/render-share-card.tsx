@@ -1,5 +1,4 @@
 import { ImageResponse } from "next/og";
-import sharp from "sharp";
 import { SHARE_CARD_SIZE, shareCardModel } from "@/lib/plots/share-card";
 import type { PlotRecord } from "@/types";
 
@@ -16,11 +15,16 @@ async function logoDataUrl(logoUrl: string | null) {
     if (buffer.byteLength < 32 || buffer.byteLength > 5_000_000) return null;
     const mime = (response.headers.get("content-type") ?? "image/png").split(";")[0];
     if (!mime.startsWith("image/")) return null;
-    const resized = await sharp(buffer)
-      .resize(128, 128, { fit: "contain", background: { r: 18, g: 20, b: 26, alpha: 1 } })
-      .png()
-      .toBuffer();
-    return `data:image/png;base64,${resized.toString("base64")}`;
+    try {
+      const sharp = (await import("sharp")).default;
+      const resized = await sharp(buffer)
+        .resize(128, 128, { fit: "contain", background: { r: 18, g: 20, b: 26, alpha: 1 } })
+        .png()
+        .toBuffer();
+      return `data:image/png;base64,${resized.toString("base64")}`;
+    } catch {
+      return `data:${mime};base64,${buffer.toString("base64")}`;
+    }
   } catch {
     return null;
   }

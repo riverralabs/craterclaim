@@ -34,6 +34,9 @@
     "zod": "^4.4.3",
     "zustand": "^5.0.15"
   },
+  "optionalDependencies": {
+    "@img/sharp-linux-x64": "0.35.3"
+  },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",

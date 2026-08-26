@@ -19,7 +19,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeSocial } from "@/lib/plots/social";
 import { listLunarFeatures } from "@/lib/moon/features";
 import { recordPlotEvent } from "@/lib/plots/events";
-import { sendLandingLiveEmail } from "@/lib/email/resend";
 import type { PlotRecord } from "@/types";
 
 const geometrySchema = z.object({
@@ -235,6 +234,7 @@ export async function activatePlot(
       : null;
     if (email) {
       try {
+        const { sendLandingLiveEmail } = await import("@/lib/email/resend");
         await sendLandingLiveEmail(email, next);
       } catch {
         // Payment already succeeded; email is best-effort.
