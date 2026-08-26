@@ -34,7 +34,7 @@ export function Navbar() {
   return (
     <header className="pointer-events-none absolute inset-x-0 top-0 z-30 p-3 sm:p-4">
       <div className="pointer-events-auto mx-auto flex max-w-6xl items-center justify-between gap-3 rounded-2xl border border-white/10 bg-charcoal/55 px-3 py-2 shadow-[0_8px_40px_rgba(0,0,0,0.35)] backdrop-blur-md sm:px-4">
-        <Link href="/" className="flex min-h-11 items-center gap-2.5 cursor-pointer">
+        <Link href="/" className="flex min-h-11 min-w-0 shrink items-center gap-2.5 cursor-pointer">
           <Image
             src="/brand/logo.png"
             alt="CraterClaim"
@@ -43,7 +43,7 @@ export function Navbar() {
             className="size-9 rounded-full"
             priority
           />
-          <span className="font-heading text-base font-semibold tracking-tight text-electric-white sm:text-lg">
+          <span className="hidden font-heading text-base font-semibold tracking-tight text-electric-white sm:inline sm:text-lg">
             CraterClaim
           </span>
         </Link>
@@ -79,7 +79,7 @@ export function Navbar() {
           })}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <AuthMenu />
           <Button
             size="lg"
