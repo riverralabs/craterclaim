@@ -6,6 +6,7 @@ import { HudFrame } from "@/components/ui/hud-frame";
 import { formatUsd, PIXEL_PRICE } from "@/lib/moon/pricing";
 import { findOverlappingPlot } from "@/lib/plots/overlap";
 import { useMoonStore } from "@/lib/store/moon-store";
+import { cn } from "@/lib/utils";
 
 export function SelectionPanel() {
   const selection = useMoonStore((state) => state.selection);
@@ -24,9 +25,13 @@ export function SelectionPanel() {
 
   return (
     <aside className="pointer-events-none absolute inset-x-3 bottom-[5.5rem] z-30 md:inset-auto md:top-24 md:right-4 md:bottom-auto md:w-[360px]">
-      <HudFrame accent={selection.zone === "premium" ? "gold" : "violet"} className="pointer-events-auto p-4">
-        <p className="font-mono text-[10px] tracking-[0.28em] text-violet uppercase">
-          Area selection active
+      <HudFrame
+        accent={overlap ? "danger" : selection.zone === "premium" ? "gold" : "silver"}
+        opaque
+        className="pointer-events-auto p-4"
+      >
+        <p className={cn("font-mono text-[10px] tracking-[0.28em] uppercase", overlap ? "text-red-300" : "text-lunar-silver")}>
+          {overlap ? "Selection blocked" : "Area selection active"}
         </p>
         <dl className="mt-3 space-y-1.5 text-sm">
           <Row label="Pixels selected" value={selection.pixelCount.toLocaleString("en-US")} />
@@ -49,8 +54,8 @@ export function SelectionPanel() {
           </span>
         </div>
         {overlap ? (
-          <p className="mt-3 text-sm text-gold">
-            That rectangle overlaps {overlap.name ?? overlap.id}. Pick an open area.
+          <p className="mt-3 text-sm text-red-300">
+            That rectangle overlaps {overlap.name ?? overlap.id}. You cannot select this.
           </p>
         ) : null}
         <div className="mt-4 flex gap-2">
@@ -58,7 +63,7 @@ export function SelectionPanel() {
             <Button
               asChild
               size="lg"
-              className="min-h-11 flex-1 cursor-pointer bg-gradient-to-r from-violet to-[#9b6dff] font-heading text-xs tracking-[0.2em] uppercase hover:from-violet hover:to-violet"
+              className="min-h-11 flex-1 cursor-pointer bg-electric-white font-heading text-xs tracking-[0.2em] text-space uppercase hover:bg-electric-white/90"
             >
               <Link href="/claim">Claim this plot</Link>
             </Button>

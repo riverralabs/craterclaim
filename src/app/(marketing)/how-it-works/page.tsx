@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
-import { formatUsd, PIXEL_PRICE } from "@/lib/moon/pricing";
+import { formatUsd, MIN_PLOT_PIXELS, PIXEL_PRICE } from "@/lib/moon/pricing";
 
 export const metadata: Metadata = {
   title: "How It Works",
@@ -30,7 +30,7 @@ export default function HowItWorksPage() {
           <Step
             n="01"
             title="Explore"
-            body="The Moon idles slowly until you touch it. Drag to rotate. Pinch or scroll to zoom. Idle rotation never resumes after that first interaction."
+            body="The Moon keeps a slow idle spin until you press Select a plot. Drag to look around. Pinch or scroll to zoom. Rotate Moon resumes the spin after you leave selection."
           />
           <Step
             n="02"
@@ -40,7 +40,7 @@ export default function HowItWorksPage() {
           <Step
             n="03"
             title="Claim a landing"
-            body="Name the plot, add a story, website, and logo, then complete checkout. The public plot page is the shareable destination — a landing, not an ad unit."
+            body="Name the plot, add a website and logo, then complete checkout. The public plot page is the shareable destination — a landing, not an ad unit."
           />
         </ol>
 
@@ -51,7 +51,7 @@ export default function HowItWorksPage() {
               <p className="text-sm text-lunar-silver">Standard</p>
               <p className="mt-1 text-2xl font-semibold">{formatUsd(PIXEL_PRICE.standard)}/px</p>
               <p className="mt-2 text-sm text-lunar-silver">
-                10×10 entry {formatUsd(PIXEL_PRICE.standard * 100)}
+                10×10 entry {formatUsd(PIXEL_PRICE.standard * MIN_PLOT_PIXELS)}
               </p>
             </div>
             <div className="rounded-xl border border-gold/40 p-4 shadow-[0_0_24px_rgba(224,184,79,0.18)]">
@@ -60,7 +60,7 @@ export default function HowItWorksPage() {
                 {formatUsd(PIXEL_PRICE.premium)}/px
               </p>
               <p className="mt-2 text-sm text-lunar-silver">
-                10×10 entry {formatUsd(PIXEL_PRICE.premium * 100)} · golden glow on the map
+                10×10 entry {formatUsd(PIXEL_PRICE.premium * MIN_PLOT_PIXELS)} · golden glow on the map
               </p>
             </div>
           </div>

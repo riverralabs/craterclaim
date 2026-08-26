@@ -6,7 +6,8 @@ import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { formatUsd, PIXEL_PRICE } from "@/lib/moon/pricing";
 import { formatLatLng } from "@/lib/moon/coordinates";
-import { mockCompletePayment, reservePlot, submitClaim } from "@/lib/plots/actions";
+import { reservePlot, startCheckout, submitClaim } from "@/lib/plots/actions";
+import { trackEvent } from "@/lib/analytics";
 import { useMoonStore } from "@/lib/store/moon-store";
 import { cn } from "@/lib/utils";
 import type { PlotRecord } from "@/types";
@@ -33,16 +34,24 @@ export function ClaimForm() {
   const [pending, setPending] = useState(false);
 
   const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
+  const [socialHandle, setSocialHandle] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [novelty, setNovelty] = useState(false);
   const [consent, setConsent] = useState(false);
+  const [terms, setTerms] = useState(false);
 
   useEffect(() => {
     void useMoonStore.persist.rehydrate();
     setHydrated(true);
+    const script = document.createElement("script");
+    script.src = "https://app.lemonsqueezy.com/js/lemon.js";
+    script.defer = true;
+    document.body.appendChild(script);
+    return () => {
+      script.remove();
+    };
   }, []);
 
   useEffect(() => {
@@ -153,11 +162,13 @@ export function ClaimForm() {
     const submitted = await submitClaim({
       plotId: reservation.id,
       name,
-      description,
+      description: "",
       websiteUrl,
+      socialHandle,
       logoUrl: uploadedLogoUrl,
       noveltyAcknowledged: true,
       immediatePerformanceConsent: true,
+      termsAccepted: true,
     });
 
     if (!submitted.ok) {
@@ -166,15 +177,38 @@ export function ClaimForm() {
       return;
     }
 
-    const paid = await mockCompletePayment(reservation.id);
-    if (!paid.ok) {
+    const checkout = await startCheckout(submitted.data.id);
+    if (!checkout.ok) {
       setPending(false);
-      setFormError(paid.error);
+      setFormError(checkout.error);
       return;
     }
 
-    rememberPlot(paid.data);
-    router.push(`/?landing=${paid.data.id}`);
+    trackEvent("checkout_started", { plot_id: submitted.data.id, mode: checkout.data.mode });
+
+    if (checkout.data.mode === "lemon" && checkout.data.url) {
+      const lemon = window as Window & {
+        LemonSqueezy?: { Url: { Open: (url: string) => void } };
+        createLemonSqueezy?: () => void;
+      };
+      lemon.createLemonSqueezy?.();
+      if (lemon.LemonSqueezy?.Url.Open) {
+        lemon.LemonSqueezy.Url.Open(checkout.data.url);
+        setPending(false);
+        return;
+      }
+      window.location.href = checkout.data.url;
+      return;
+    }
+
+    if (!checkout.data.plot) {
+      setPending(false);
+      setFormError("Payment did not complete.");
+      return;
+    }
+
+    rememberPlot(checkout.data.plot);
+    router.push(`/?landing=${checkout.data.plot.id}`);
   }
 
   if (!hydrated) {
@@ -211,8 +245,12 @@ export function ClaimForm() {
         <p className="text-xs font-medium tracking-[0.22em] text-violet uppercase">Claim</p>
         <h1 className="font-heading text-4xl font-bold tracking-tight">Name this landing.</h1>
         <p className="text-sm leading-relaxed text-lunar-silver">
-          Payment is mocked for this build. No card is charged. The same webhook path will
-          verify a real provider later.
+          Checkout is Lemon Squeezy when those keys are set. Until then, local mock checkout
+          still lands a plot so we can test the loop. Digital plots only — not physical land.
+          <Link href="/guidelines" className="ml-1 underline decoration-white/20 hover:text-electric-white">
+            Content rules
+          </Link>
+          .
         </p>
 
         <label className="block text-sm">
@@ -229,18 +267,6 @@ export function ClaimForm() {
         </label>
 
         <label className="block text-sm">
-          Story
-          <textarea
-            maxLength={500}
-            rows={4}
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            className={fieldClass}
-            placeholder="Why this place on the Moon?"
-          />
-        </label>
-
-        <label className="block text-sm">
           Website
           <input
             type="text"
@@ -250,6 +276,20 @@ export function ClaimForm() {
             className={fieldClass}
             placeholder="https://"
           />
+        </label>
+
+        <label className="block text-sm">
+          Social (optional)
+          <input
+            type="text"
+            value={socialHandle}
+            onChange={(event) => setSocialHandle(event.target.value)}
+            className={fieldClass}
+            placeholder="@studio or profile URL"
+          />
+          <span className="mt-1 block text-xs text-lunar-silver">
+            Shown on the share card if you add it. Sharing still works without it.
+          </span>
         </label>
 
         <label className="block text-sm">
@@ -286,7 +326,31 @@ export function ClaimForm() {
             onChange={(event) => setConsent(event.target.checked)}
             required
           />
-          I agree this is an immediately performed digital service.
+          I agree this is an immediately performed digital service. I lose any cooling-off
+          right once the landing is live, including in the EU.
+        </label>
+
+        <label className="flex gap-3 text-sm leading-relaxed text-lunar-silver">
+          <input
+            type="checkbox"
+            className="mt-1 size-4 accent-gold"
+            checked={terms}
+            onChange={(event) => setTerms(event.target.checked)}
+            required
+          />
+          I agree to the{" "}
+          <Link href="/terms" className="underline decoration-white/20 hover:text-electric-white">
+            Terms
+          </Link>
+          ,{" "}
+          <Link href="/privacy" className="underline decoration-white/20 hover:text-electric-white">
+            Privacy
+          </Link>
+          , and{" "}
+          <Link href="/refunds" className="underline decoration-white/20 hover:text-electric-white">
+            no-refund policy
+          </Link>
+          .
         </label>
 
         {reserveError ? <p className="text-sm text-red-300">{reserveError}</p> : null}
@@ -299,12 +363,12 @@ export function ClaimForm() {
           <Button
             type="submit"
             size="lg"
-            disabled={pending || !reservation || expired || Boolean(reserveError) || !novelty || !consent}
+            disabled={pending || !reservation || expired || Boolean(reserveError) || !novelty || !consent || !terms}
             className="min-h-11 cursor-pointer bg-electric-white px-5 text-space hover:bg-electric-white/90"
           >
             {pending
               ? "Claiming…"
-              : `Pay ${formatUsd(preview?.quotedPrice ?? selection.price)} (mock)`}
+              : `Pay ${formatUsd(preview?.quotedPrice ?? selection.price)}`}
           </Button>
           <Button asChild size="lg" variant="outline" className="min-h-11 cursor-pointer border-white/15">
             <Link href="/">Back to Moon</Link>

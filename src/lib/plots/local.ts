@@ -1,3 +1,4 @@
+import { GRID_REVISION, GRID_REVISION_KEY, migratePlotsToCurrentGrid } from "@/lib/moon/grid";
 import type { PlotRecord } from "@/types";
 
 export const PLOTS_STORAGE_KEY = "craterclaim-plots";
@@ -8,7 +9,15 @@ export function readLocalPlots(): PlotRecord[] {
     const raw = window.localStorage.getItem(PLOTS_STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as PlotRecord[];
-    return Array.isArray(parsed) ? parsed.filter((plot) => plot.status === "active") : [];
+    if (!Array.isArray(parsed)) return [];
+    const revision = Number(window.localStorage.getItem(GRID_REVISION_KEY) ?? 1);
+    const active = parsed.filter((plot) => plot.status === "active");
+    const migrated = revision < GRID_REVISION ? migratePlotsToCurrentGrid(active) : active;
+    if (revision < GRID_REVISION) {
+      window.localStorage.setItem(GRID_REVISION_KEY, String(GRID_REVISION));
+      writeLocalPlots(migrated);
+    }
+    return migrated;
   } catch {
     return [];
   }

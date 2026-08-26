@@ -1,8 +1,9 @@
 import type { LunarFeature } from "@/types";
 
 /**
- * Named lunar features for V1. Premium regions are real landmarks
- * and render with a soft golden glow. Coordinates are approximate USGS values.
+ * Well-known V1 destinations. Every named site is premium and glows gold.
+ * Craters sit inside larger maria, so covering prefers the smallest radius.
+ * Coordinates are approximate USGS values.
  */
 export const LUNAR_FEATURES: LunarFeature[] = [
   {
@@ -30,7 +31,7 @@ export const LUNAR_FEATURES: LunarFeature[] = [
     centerLat: 28.0,
     centerLng: 17.5,
     radiusDeg: 12,
-    isPremium: false,
+    isPremium: true,
   },
   {
     id: "procellarum",
@@ -39,7 +40,7 @@ export const LUNAR_FEATURES: LunarFeature[] = [
     centerLat: 18.4,
     centerLng: -57.4,
     radiusDeg: 22,
-    isPremium: false,
+    isPremium: true,
   },
   {
     id: "tycho",
@@ -79,6 +80,10 @@ export const LUNAR_FEATURES: LunarFeature[] = [
   },
 ];
 
+export function listDefaultFeatures() {
+  return LUNAR_FEATURES;
+}
+
 export const PREMIUM_FEATURES = LUNAR_FEATURES.filter((feature) => feature.isPremium);
 
 const DEG = Math.PI / 180;
@@ -97,11 +102,11 @@ function angularDistanceDeg(
   return (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))) / DEG;
 }
 
-export function nearestFeature(lat: number, lng: number) {
-  let closest = LUNAR_FEATURES[0];
+export function nearestFeature(lat: number, lng: number, features: LunarFeature[] = LUNAR_FEATURES) {
+  let closest = features[0] ?? LUNAR_FEATURES[0];
   let best = Number.POSITIVE_INFINITY;
 
-  for (const feature of LUNAR_FEATURES) {
+  for (const feature of features) {
     const distance = angularDistanceDeg(lat, lng, feature.centerLat, feature.centerLng);
     if (distance < best) {
       best = distance;
@@ -112,11 +117,16 @@ export function nearestFeature(lat: number, lng: number) {
   return closest;
 }
 
-export function featureCovering(lat: number, lng: number) {
-  return LUNAR_FEATURES.find(
-    (feature) =>
-      angularDistanceDeg(lat, lng, feature.centerLat, feature.centerLng) <= feature.radiusDeg,
-  );
+export function featureCovering(lat: number, lng: number, features: LunarFeature[] = LUNAR_FEATURES) {
+  let best: LunarFeature | undefined;
+  for (const feature of features) {
+    const distance = angularDistanceDeg(lat, lng, feature.centerLat, feature.centerLng);
+    if (distance > feature.radiusDeg) continue;
+    if (!best || feature.radiusDeg < best.radiusDeg) {
+      best = feature;
+    }
+  }
+  return best;
 }
 
 export function getFeatureById(id: string) {

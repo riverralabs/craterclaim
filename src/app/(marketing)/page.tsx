@@ -6,15 +6,16 @@ import { MoonScene } from "@/components/moon/MoonScene";
 import { PlotHydrator } from "@/components/plot/PlotHydrator";
 import { SelectionPanel } from "@/components/selection/SelectionPanel";
 import { listActivePlots } from "@/lib/plots/inventory";
+import { listLunarFeatures } from "@/lib/moon/features";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const plots = await listActivePlots();
+  const [plots, features] = await Promise.all([listActivePlots(), listLunarFeatures()]);
 
   return (
     <main className="relative h-dvh overflow-hidden bg-space">
-      <PlotHydrator plots={plots} />
+      <PlotHydrator plots={plots} features={features} />
       <MoonScene />
       <HomeHud />
       <SelectionPanel />

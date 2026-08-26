@@ -2,10 +2,10 @@ import type { PixelCoord, UV } from "@/types";
 
 /**
  * Equirectangular lunar grid.
- * 2:1 aspect is the natural map projection. 4000 × 1000 = exactly 4,000,000 pixels.
+ * 2:1 aspect is the natural map projection. 2000 × 1000 = exactly 2,000,000 pixels.
  * Pixels do not represent equal physical area — polar cells cover less ground.
  */
-export const GRID_WIDTH = 4000;
+export const GRID_WIDTH = 2000;
 export const GRID_HEIGHT = 1000;
 
 const DEG = Math.PI / 180;

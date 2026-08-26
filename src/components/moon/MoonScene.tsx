@@ -2,13 +2,17 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Bloom, EffectComposer } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { CameraController, IDLE_DISTANCE } from "@/components/moon/CameraController";
 import { CalloutLayer, CalloutTracker } from "@/components/moon/FeatureCallouts";
 import { MoonSphere } from "@/components/moon/MoonSphere";
 import { OwnershipLayer } from "@/components/moon/OwnershipLayer";
+import { PlotGlowLayer } from "@/components/moon/PlotGlowLayer";
+import { PlotLogoLayer } from "@/components/moon/PlotLogoLayer";
+import { PlotInspectController } from "@/components/moon/PlotInspectController";
 import { SelectionController } from "@/components/moon/SelectionController";
+import { Starfield } from "@/components/moon/Starfield";
+import { MoonMap2D } from "@/components/moon/MoonMap2D";
 import { useMoonInteraction } from "@/hooks/useMoonInteraction";
 import { useMoonStore } from "@/lib/store/moon-store";
 
@@ -22,25 +26,25 @@ function hasWebGL() {
 }
 
 function MoonLights() {
-  const camera = useThree((state) => state.camera);
-  const keyRef = useRef<THREE.DirectionalLight>(null);
-  const fillRef = useRef<THREE.DirectionalLight>(null);
-  const fillOffset = useMemo(() => new THREE.Vector3(1.4, 1.6, 0.6), []);
+  const key = useRef<THREE.DirectionalLight>(null);
+  const fill = useRef<THREE.DirectionalLight>(null);
+  const wrap = useRef<THREE.DirectionalLight>(null);
+  const { camera } = useThree();
 
   useFrame(() => {
-    const key = keyRef.current;
-    const fill = fillRef.current;
-    if (!key || !fill) return;
-    key.position.copy(camera.position);
-    fill.position.copy(camera.position).add(fillOffset);
+    const { x, y, z } = camera.position;
+    key.current?.position.set(x, y, z);
+    fill.current?.position.set(x - 2.4, y + 0.8, z + 0.6);
+    wrap.current?.position.set(x + 2.2, y - 0.6, z + 0.5);
   });
 
   return (
     <>
-      <ambientLight intensity={0.95} />
-      <hemisphereLight args={["#f4f6f8", "#8a9098", 0.55]} />
-      <directionalLight ref={keyRef} intensity={1.2} color="#fffaf4" />
-      <directionalLight ref={fillRef} intensity={0.5} color="#dce2ea" />
+      <ambientLight intensity={0.28} color="#8a909a" />
+      <hemisphereLight args={["#d4dae4", "#353028", 0.38]} />
+      <directionalLight ref={key} intensity={0.55} color="#fff1d8" />
+      <directionalLight ref={fill} intensity={0.32} color="#c5ccd6" />
+      <directionalLight ref={wrap} intensity={0.26} color="#e8d4b4" />
     </>
   );
 }
@@ -58,45 +62,29 @@ function MoonExperience({
   avoidBottom: number;
   hero: boolean;
 }) {
-  const colorUrl = isMobile ? "/textures/moon/color.jpg" : "/textures/moon/color-2k.jpg";
-  const segments = isMobile ? 64 : 128;
+  const colorUrl = isMobile ? "/textures/moon/color.webp" : "/textures/moon/color-2k.webp";
+  const segments = isMobile ? 40 : 72;
 
   return (
     <>
+      <Starfield />
       <MoonLights />
       <MoonSphere segments={segments} colorUrl={colorUrl}>
-        <OwnershipLayer />
+        <OwnershipLayer segments={segments} />
+        <PlotGlowLayer />
+        <PlotLogoLayer />
       </MoonSphere>
       <CalloutTracker
         visible={showLabels}
         avoidRight={avoidRight}
         avoidBottom={avoidBottom}
         hero={hero}
+        compact={isMobile}
       />
       <CameraController />
       <SelectionController />
-      {!isMobile ? (
-        <EffectComposer enableNormalPass={false} multisampling={0}>
-          <Bloom
-            luminanceThreshold={0.42}
-            luminanceSmoothing={0.18}
-            intensity={0.9}
-            mipmapBlur
-          />
-        </EffectComposer>
-      ) : null}
+      <PlotInspectController />
     </>
-  );
-}
-
-function MoonFallback() {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src="/textures/moon/fallback.jpg"
-      alt="The Moon"
-      className="h-full w-full object-contain"
-    />
   );
 }
 
@@ -117,12 +105,12 @@ export function MoonScene() {
     return () => media.removeEventListener("change", onChange);
   }, []);
 
-  const dpr = useMemo<[number, number]>(() => (isMobile ? [1, 1.25] : [1, 1.75]), [isMobile]);
+  const dpr = useMemo<[number, number]>(() => (isMobile ? [1, 1.15] : [1, 1.35]), [isMobile]);
 
   if (webgl === false) {
     return (
       <div className="absolute inset-0 bg-space">
-        <MoonFallback />
+        <MoonMap2D />
       </div>
     );
   }
@@ -134,25 +122,26 @@ export function MoonScene() {
   return (
     <div className={`absolute inset-0 bg-space ${selectionMode ? "cursor-crosshair touch-none" : isExploring ? "cursor-grab touch-none" : "touch-none"}`}>
       <Canvas
-        camera={{ position: [0, -0.08, IDLE_DISTANCE], fov: 38, near: 0.1, far: 40 }}
+        camera={{ position: [0, -0.08, IDLE_DISTANCE], fov: 38, near: 0.1, far: 90 }}
         dpr={dpr}
+        performance={{ min: 0.5, max: 1, debounce: 200 }}
         gl={{
           antialias: !isMobile,
           alpha: false,
           powerPreference: "high-performance",
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.12,
+          toneMappingExposure: 0.96,
         }}
         onCreated={({ gl }) => {
-          gl.setClearColor("#000000");
+          gl.setClearColor("#05060e");
         }}
       >
         <Suspense fallback={null}>
           <MoonExperience
             isMobile={isMobile}
-            showLabels={(!isMobile || isExploring) && !selectionMode && landingMode === "idle"}
+            showLabels={!selectionMode && landingMode === "idle"}
             avoidRight={isExploring || isMobile ? 28 : 348}
-            avoidBottom={isExploring || isMobile ? 84 : 28}
+            avoidBottom={isMobile ? (isExploring ? 88 : 210) : isExploring ? 84 : 28}
             hero={!isExploring && !isMobile}
           />
         </Suspense>

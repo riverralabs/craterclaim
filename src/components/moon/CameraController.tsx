@@ -8,9 +8,10 @@ import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useMoonStore } from "@/lib/store/moon-store";
 
 export const IDLE_DISTANCE = 4.32;
-const EXPLORE_DISTANCE = 2.82;
+const SELECT_DISTANCE = 2.82;
 const PULLBACK_DISTANCE = 3.35;
 const LANDING_DISTANCE = 1.58;
+const HOME_POSITION = new THREE.Vector3(0, -0.08, IDLE_DISTANCE);
 
 export function CameraController() {
   const controlsRef = useRef<OrbitControlsImpl>(null);
@@ -21,21 +22,25 @@ export function CameraController() {
   const selectionMode = useMoonStore((state) => state.selectionMode);
   const landingMode = useMoonStore((state) => state.landingMode);
   const landingPlotId = useMoonStore((state) => state.landingPlotId);
+  const viewResetAt = useMoonStore((state) => state.viewResetAt);
   const plots = useMoonStore((state) => state.plots);
-  const pullInRef = useRef(false);
+  const pullTarget = useRef<number | null>(null);
   const pullbackDone = useRef(false);
   const desired = useRef(new THREE.Vector3());
 
   const landingPlot = plots.find((plot) => plot.id === landingPlotId) ?? null;
   const flying = landingMode === "flying" && Boolean(landingPlot);
-  const canOrbit = isExploring && !selectionMode && landingMode === "idle";
-  const canZoom = isExploring && landingMode === "idle";
+  const viewingLanding = landingMode === "arrived";
+  const canOrbit = isExploring && !selectionMode && (landingMode === "idle" || viewingLanding);
+  const canZoom = isExploring && !selectionMode && (landingMode === "idle" || viewingLanding);
 
   useEffect(() => {
-    if (isExploring && landingMode === "idle") {
-      pullInRef.current = true;
+    if (landingMode !== "idle") {
+      pullTarget.current = null;
+      return;
     }
-  }, [isExploring, landingMode]);
+    pullTarget.current = selectionMode ? SELECT_DISTANCE : IDLE_DISTANCE;
+  }, [selectionMode, landingMode]);
 
   useEffect(() => {
     if (landingMode === "flying") {
@@ -54,13 +59,25 @@ export function CameraController() {
     }
   }, [camera, landingMode]);
 
+  useEffect(() => {
+    if (viewResetAt === 0 || landingMode !== "idle") return;
+    const controls = controlsRef.current;
+    camera.position.copy(HOME_POSITION);
+    camera.lookAt(0, 0, 0);
+    pullTarget.current = IDLE_DISTANCE;
+    if (controls) {
+      controls.target.set(0, 0, 0);
+      controls.update();
+    }
+  }, [camera, landingMode, viewResetAt]);
+
   useFrame((_, delta) => {
     const controls = controlsRef.current;
     if (!controls) return;
     const dt = Math.min(delta, 0.05);
 
     if (flying) {
-      pullInRef.current = false;
+      pullTarget.current = null;
       const targetDistance = pullbackDone.current ? LANDING_DISTANCE : PULLBACK_DISTANCE;
       desired.current.set(0, 0, targetDistance);
       camera.position.lerp(desired.current, 1 - Math.pow(0.08, dt * 60));
@@ -80,13 +97,16 @@ export function CameraController() {
       return;
     }
 
-    if (!pullInRef.current) return;
+    if (pullTarget.current == null) return;
     const distance = camera.position.length();
-    if (distance <= EXPLORE_DISTANCE + 0.02) {
-      pullInRef.current = false;
+    const target = pullTarget.current;
+    if (Math.abs(distance - target) <= 0.02) {
+      camera.position.setLength(target);
+      pullTarget.current = null;
+      controls.update();
       return;
     }
-    const next = THREE.MathUtils.lerp(distance, EXPLORE_DISTANCE, 1 - Math.pow(0.12, dt * 60));
+    const next = THREE.MathUtils.lerp(distance, target, 1 - Math.pow(0.12, dt * 60));
     camera.position.setLength(next);
     controls.update();
   });

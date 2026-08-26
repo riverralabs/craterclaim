@@ -18,3 +18,16 @@ export function findOverlappingPlot(
 ) {
   return plots.find((plot) => rectsOverlap(rect, plot)) ?? null;
 }
+
+export function findPlotAtPixel(x: number, y: number, plots: PlotRecord[]) {
+  return (
+    plots.find(
+      (plot) =>
+        plot.status === "active" &&
+        x >= plot.x &&
+        x < plot.x + plot.width &&
+        y >= plot.y &&
+        y < plot.y + plot.height,
+    ) ?? null
+  );
+}

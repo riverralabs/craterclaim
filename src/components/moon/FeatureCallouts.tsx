@@ -1,10 +1,10 @@
 "use client";
 
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { latLngToVector3 } from "@/lib/moon/coordinates";
-import { PREMIUM_FEATURES } from "@/lib/moon/regions";
+import { useMoonStore } from "@/lib/store/moon-store";
 import type { LunarFeature } from "@/types";
 
 export type CalloutPin = {
@@ -40,18 +40,21 @@ function escapeHtml(value: string) {
     .replaceAll('"', "&quot;");
 }
 
-function paintCallouts(pins: CalloutPin[]) {
+function paintCallouts(pins: CalloutPin[], compact: boolean) {
   const root = document.getElementById("moon-callouts");
   if (!root) return;
   root.dataset.count = String(pins.length);
+  const tick = compact ? 12 : 16;
+  const titleSize = compact ? 9 : 11;
+  const subSize = compact ? 7 : 8;
   const groups = pins
     .map((pin) => {
       const bracket =
         pin.side === "right"
-          ? `M ${pin.labelX} ${pin.labelY - 16} L ${pin.labelX} ${pin.labelY + 16} L ${pin.labelX + 18} ${pin.labelY + 16}`
-          : `M ${pin.labelX} ${pin.labelY - 16} L ${pin.labelX} ${pin.labelY + 16} L ${pin.labelX - 18} ${pin.labelY + 16}`;
+          ? `M ${pin.labelX} ${pin.labelY - tick} L ${pin.labelX} ${pin.labelY + tick} L ${pin.labelX + 14} ${pin.labelY + tick}`
+          : `M ${pin.labelX} ${pin.labelY - tick} L ${pin.labelX} ${pin.labelY + tick} L ${pin.labelX - 14} ${pin.labelY + tick}`;
       return `<g filter="url(#callout-glow)">
-          <circle cx="${pin.x}" cy="${pin.y}" r="5.5" fill="none" stroke="#e0b84f" stroke-width="1.15" />
+          <circle cx="${pin.x}" cy="${pin.y}" r="${compact ? 4.2 : 5.5}" fill="none" stroke="#e0b84f" stroke-width="1.15" />
           <circle cx="${pin.x}" cy="${pin.y}" r="1.7" fill="#e0b84f" />
           <circle cx="${pin.exitX}" cy="${pin.exitY}" r="2.2" fill="#e0b84f" />
           <circle cx="${pin.jointX}" cy="${pin.jointY}" r="2.2" fill="#e0b84f" />
@@ -63,10 +66,10 @@ function paintCallouts(pins: CalloutPin[]) {
   const labels = pins
     .map((pin) => {
       const transform =
-        pin.side === "left" ? "translate(calc(-100% - 10px), -50%)" : "translate(12px, -50%)";
+        pin.side === "left" ? "translate(calc(-100% - 8px), -50%)" : "translate(10px, -50%)";
       return `<div data-callout="true" style="position:absolute;left:${pin.labelX}px;top:${pin.labelY}px;transform:${transform};white-space:nowrap">
-          <p style="margin:0;font-family:Syne,ui-sans-serif,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.2em;color:#f4f6f8;text-transform:uppercase;line-height:1.15">${escapeHtml(pin.title)}</p>
-          <p style="margin:2px 0 0;font-family:'Geist Mono',ui-monospace,monospace;font-size:8px;letter-spacing:0.28em;color:#e0b84f;text-transform:uppercase;line-height:1">${escapeHtml(pin.subtitle)}</p>
+          <p style="margin:0;font-family:Syne,ui-sans-serif,sans-serif;font-size:${titleSize}px;font-weight:700;letter-spacing:0.18em;color:#f4f6f8;text-transform:uppercase;line-height:1.15">${escapeHtml(pin.title)}</p>
+          <p style="margin:2px 0 0;font-family:'Geist Mono',ui-monospace,monospace;font-size:${subSize}px;letter-spacing:0.24em;color:#e0b84f;text-transform:uppercase;line-height:1">${escapeHtml(pin.subtitle)}</p>
         </div>`;
     })
     .join("");
@@ -116,10 +119,11 @@ function layoutPins(
   avoidRight: number,
   avoidBottom: number,
   hero: boolean,
+  compact: boolean,
 ) {
-  const gap = 70;
+  const gap = compact ? 48 : 70;
   const ring = moonR + gap;
-  const minR = moonR + 48;
+  const minR = moonR + (compact ? 32 : 48);
   const hud = { x: width - avoidRight, y: 72, w: avoidRight + 8, h: height };
   const copy = hero
     ? { x: 0, y: height - 300, w: Math.min(540, width * 0.42), h: 300 }
@@ -139,7 +143,7 @@ function layoutPins(
   facing.sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
 
   const used: { x: number; y: number }[] = [];
-  const minSep = 92;
+  const minSep = compact ? 68 : 92;
 
   for (const pin of facing) {
     const base =
@@ -208,11 +212,13 @@ export function CalloutTracker({
   avoidRight,
   avoidBottom,
   hero,
+  compact = false,
 }: {
   visible: boolean;
   avoidRight: number;
   avoidBottom: number;
   hero: boolean;
+  compact?: boolean;
 }) {
   const { camera, size, scene } = useThree();
   const world = useRef(new THREE.Vector3());
@@ -225,21 +231,32 @@ export function CalloutTracker({
   const camRight = useRef(new THREE.Vector3());
   const rim = useRef(new THREE.Vector3());
   const last = useRef<CalloutPin[]>([]);
-  const locals = useRef(
-    PREMIUM_FEATURES.map((feature) => ({
-      feature,
-      local: latLngToVector3(feature.centerLat, feature.centerLng, 1.002),
-    })),
+  const lastPaintAt = useRef(0);
+  const features = useMoonStore((state) => state.features);
+  const locals = useMemo(
+    () =>
+      features
+        .filter((feature) => feature.isPremium)
+        .map((feature) => ({
+          feature,
+          local: latLngToVector3(feature.centerLat, feature.centerLng, 1.002),
+        })),
+    [features],
   );
 
-  useFrame(() => {
+  useFrame(({ clock }) => {
     if (!visible) {
       if (last.current.length) {
         last.current = [];
-        paintCallouts([]);
+        lastPaintAt.current = 0;
+        paintCallouts([], compact);
       }
       return;
     }
+
+    const elapsed = clock.getElapsedTime();
+    if (elapsed - lastPaintAt.current < 0.08) return;
+    lastPaintAt.current = elapsed;
 
     const moon = scene.getObjectByName("moonSurface");
     if (!moon) return;
@@ -264,7 +281,7 @@ export function CalloutTracker({
     );
 
     const facing: CalloutPin[] = [];
-    for (const entry of locals.current) {
+    for (const entry of locals) {
       world.current.set(entry.local.x, entry.local.y, entry.local.z).applyMatrix4(moon.matrixWorld);
       normal.current.copy(world.current).sub(moonPos.current).normalize();
       toCam.current.copy(camera.position).sub(world.current).normalize();
@@ -290,11 +307,16 @@ export function CalloutTracker({
       });
     }
 
-    layoutPins(facing, cx, cy, moonR, width, height, avoidRight, avoidBottom, hero);
+    if (compact && facing.length > 4) {
+      facing.sort((a, b) => Math.hypot(a.x - cx, a.y - cy) - Math.hypot(b.x - cx, b.y - cy));
+      facing.splice(4);
+    }
+
+    layoutPins(facing, cx, cy, moonR, width, height, avoidRight, avoidBottom, hero, compact);
     const placed = facing.filter(
       (pin) =>
-        Math.hypot(pin.labelX - cx, pin.labelY - cy) >= moonR + 40 &&
-        Math.hypot(pin.labelX - pin.x, pin.labelY - pin.y) > 28,
+        Math.hypot(pin.labelX - cx, pin.labelY - cy) >= moonR + (compact ? 28 : 40) &&
+        Math.hypot(pin.labelX - pin.x, pin.labelY - pin.y) > (compact ? 20 : 28),
     );
 
     const root = document.getElementById("moon-callouts");
@@ -309,7 +331,7 @@ export function CalloutTracker({
       }
     }
     last.current = placed;
-    paintCallouts(placed);
+    paintCallouts(placed, compact);
   });
 
   return null;

@@ -21,6 +21,18 @@ export function Footer() {
           <Link href="/recent" className="cursor-pointer hover:text-electric-white">
             Recent Claims
           </Link>
+          <Link href="/guidelines" className="cursor-pointer hover:text-electric-white">
+            Content rules
+          </Link>
+          <Link href="/terms" className="cursor-pointer hover:text-electric-white">
+            Terms
+          </Link>
+          <Link href="/privacy" className="cursor-pointer hover:text-electric-white">
+            Privacy
+          </Link>
+          <Link href="/refunds" className="cursor-pointer hover:text-electric-white">
+            Refunds
+          </Link>
         </div>
       </div>
     </footer>

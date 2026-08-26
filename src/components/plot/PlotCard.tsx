@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { HudFrame } from "@/components/ui/hud-frame";
 import { formatLatLng } from "@/lib/moon/coordinates";
+import { websiteHref } from "@/lib/plots/website";
 import type { Zone } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -15,8 +16,10 @@ type PlotCardProps = {
   claimDate: string;
   zone: Zone;
   logoUrl?: string | null;
+  websiteUrl?: string | null;
   valueLabel?: string;
   variant?: "card" | "panel";
+  onViewPlot?: () => void;
 };
 
 function formatClaimDate(value: string) {
@@ -58,16 +61,21 @@ export function PlotCard({
   claimDate,
   zone,
   logoUrl,
+  websiteUrl,
   valueLabel,
   variant = "card",
+  onViewPlot,
 }: PlotCardProps) {
   const premium = zone === "premium";
   const glow = premium
-    ? "shadow-[0_0_28px_rgba(224,184,79,0.55)]"
-    : "shadow-[0_0_28px_rgba(124,125,255,0.5)]";
+    ? "shadow-[0_0_28px_rgba(224,184,79,0.45)]"
+    : "shadow-[0_0_20px_rgba(183,188,198,0.22)]";
+  const moonHref = `/?focus=${plotId}`;
+  const landingHref = websiteUrl ? websiteHref(websiteUrl) : `/plot/${plotId}`;
+  const landingExternal = Boolean(websiteUrl);
 
   return (
-    <HudFrame accent={premium ? "gold" : "violet"} className={variant === "panel" ? "p-5" : "p-4"}>
+    <HudFrame accent={premium ? "gold" : "silver"} opaque={variant === "panel"} className={variant === "panel" ? "p-5" : "p-4"}>
       <div className="flex items-center gap-2">
         <span className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,1)]" />
         <p className="font-mono text-[10px] tracking-[0.32em] text-emerald-300 uppercase">Plot claimed</p>
@@ -81,7 +89,7 @@ export function PlotCard({
           <div
             className={cn(
               "flex h-12 w-12 items-center justify-center font-heading text-lg font-bold tracking-[0.2em] uppercase",
-              premium ? "text-gold" : "text-violet",
+              premium ? "text-gold" : "text-lunar-silver",
               glow,
             )}
           >
@@ -93,7 +101,7 @@ export function PlotCard({
           <p
             className={cn(
               "mt-1 font-mono text-[10px] tracking-[0.28em] uppercase",
-              premium ? "text-gold" : "text-violet",
+              premium ? "text-gold" : "text-lunar-silver",
             )}
           >
             {premium ? "Premium zone" : "Standard zone"}
@@ -110,19 +118,53 @@ export function PlotCard({
         <MetaRow label="Claimed" value={formatClaimDate(claimDate)} />
       </div>
 
-      <Button
-        asChild
-        size="lg"
-        className={cn(
-          "mt-5 min-h-11 w-full cursor-pointer font-heading text-xs tracking-[0.24em] uppercase",
-          variant === "panel"
-            ? "bg-gradient-to-r from-violet to-[#9b6dff] text-electric-white hover:from-violet hover:to-violet"
-            : "border border-white/15 bg-transparent text-electric-white hover:bg-white/5",
+      <div className="mt-5 space-y-2">
+        {variant === "panel" ? (
+          <>
+            {onViewPlot ? (
+              <Button
+                type="button"
+                size="lg"
+                className="min-h-11 w-full cursor-pointer bg-electric-white font-heading text-xs tracking-[0.24em] text-space uppercase hover:bg-electric-white/90"
+                onClick={onViewPlot}
+              >
+                View plot
+              </Button>
+            ) : (
+              <Button
+                asChild
+                size="lg"
+                className="min-h-11 w-full cursor-pointer bg-electric-white font-heading text-xs tracking-[0.24em] text-space uppercase hover:bg-electric-white/90"
+              >
+                <Link href={moonHref}>View plot</Link>
+              </Button>
+            )}
+            <Button
+              asChild
+              size="lg"
+              variant="outline"
+              className="min-h-11 w-full cursor-pointer border-white/15 bg-transparent font-heading text-xs tracking-[0.24em] text-electric-white uppercase hover:bg-white/10"
+            >
+              {landingExternal ? (
+                <a href={landingHref} target="_blank" rel="noopener noreferrer nofollow sponsored">
+                  Visit landing site
+                </a>
+              ) : (
+                <Link href={landingHref}>Visit landing site</Link>
+              )}
+            </Button>
+          </>
+        ) : (
+          <Button
+            asChild
+            size="lg"
+            variant="outline"
+            className="min-h-11 w-full cursor-pointer border-white/15 bg-transparent font-heading text-xs tracking-[0.24em] text-electric-white uppercase hover:bg-white/5"
+          >
+            <Link href={`/plot/${plotId}`}>View landing</Link>
+          </Button>
         )}
-        variant={variant === "panel" ? "default" : "outline"}
-      >
-        <Link href={`/plot/${plotId}`}>{variant === "panel" ? "View your plot" : "View landing"}</Link>
-      </Button>
+      </div>
     </HudFrame>
   );
 }

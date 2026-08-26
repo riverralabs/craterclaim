@@ -3,7 +3,7 @@ export const PIXEL_PRICE = {
   premium: 1.0,
 } as const;
 
-export const TOTAL_PIXELS = 4_000_000;
+export const TOTAL_PIXELS = 2_000_000;
 export const MIN_PLOT_SIZE = 10;
 export const MIN_PLOT_PIXELS = MIN_PLOT_SIZE * MIN_PLOT_SIZE;
 

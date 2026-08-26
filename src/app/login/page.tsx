@@ -29,8 +29,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             Sign in to claim.
           </h1>
           <p className="mt-4 max-w-lg leading-relaxed text-lunar-silver">
-            Use your email. No password. Your landings stay attached to this account once
-            Supabase is connected.
+            Use Google, Apple, or X. No password, no magic link. Landings attach to that
+            account.
           </p>
           <LoginForm nextPath={nextPath} error={params.error} />
         </div>

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { PlotCard } from "@/components/plot/PlotCard";
+import { SharePlotButton } from "@/components/plot/SharePlotButton";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { formatUsd } from "@/lib/moon/pricing";
 import { useMoonStore } from "@/lib/store/moon-store";
@@ -11,6 +12,7 @@ export function LandingOverlay() {
   const landingPlotId = useMoonStore((state) => state.landingPlotId);
   const landingMode = useMoonStore((state) => state.landingMode);
   const landingCinematic = useMoonStore((state) => state.landingCinematic);
+  const landingAsOwner = useMoonStore((state) => state.landingAsOwner);
   const plots = useMoonStore((state) => state.plots);
   const setLandingMode = useMoonStore((state) => state.setLandingMode);
   const skipLanding = useMoonStore((state) => state.skipLanding);
@@ -39,7 +41,11 @@ export function LandingOverlay() {
       {landingMode === "confirmed" || landingMode === "flying" ? (
         <div className="absolute inset-x-0 top-24 flex flex-col items-center gap-3 px-4">
           <p className="rounded-full border border-gold/40 bg-charcoal/80 px-4 py-2 text-xs tracking-[0.22em] text-gold uppercase">
-            {landingMode === "confirmed" ? "Landing confirmed" : "Approaching your plot"}
+            {landingMode === "confirmed"
+              ? "Landing confirmed"
+              : landingAsOwner
+                ? "Approaching your plot"
+                : "Approaching landing"}
           </p>
           {landingCinematic && !reducedMotion ? (
             <Button
@@ -56,11 +62,8 @@ export function LandingOverlay() {
       ) : null}
 
       {landingMode === "arrived" ? (
-        <div className="absolute inset-x-3 top-24 z-40 max-w-sm md:top-24 md:right-4 md:left-auto">
+        <div className="absolute inset-x-3 top-24 z-40 mx-auto max-w-[22.5rem] md:top-24 md:right-4 md:left-auto md:mx-0">
           <div className="pointer-events-auto space-y-3">
-            <p className="text-center font-mono text-[10px] tracking-[0.32em] text-violet uppercase md:text-left">
-              Welcome to your landing
-            </p>
             <PlotCard
               plotId={plot.id}
               name={plot.name ?? "Untitled landing"}
@@ -71,13 +74,20 @@ export function LandingOverlay() {
               claimDate={plot.claimDate ?? plot.createdAt}
               zone={plot.zone}
               logoUrl={plot.logoUrl}
+              websiteUrl={plot.websiteUrl}
               valueLabel={formatUsd(plot.pricePaid ?? plot.quotedPrice)}
               variant="panel"
+              onViewPlot={clearLanding}
+            />
+            <SharePlotButton
+              plotId={plot.id}
+              name={plot.name ?? "Untitled landing"}
+              className="w-full"
             />
             <Button
               type="button"
               variant="outline"
-              className="min-h-11 w-full cursor-pointer border-white/15"
+              className="min-h-11 w-full cursor-pointer border-white/15 bg-charcoal text-electric-white hover:bg-white/10"
               onClick={clearLanding}
             >
               Keep exploring

@@ -4,7 +4,6 @@ import { z } from "zod";
 import { findOverlappingPlot } from "@/lib/plots/overlap";
 import {
   getPlot,
-  listActivePlots,
   listPlots,
   nextPlotId,
   reservationMs,
@@ -12,8 +11,15 @@ import {
 } from "@/lib/plots/inventory";
 import { QuoteError, quoteGeometry } from "@/lib/plots/quote";
 import { mockPaymentId, MOCK_PROVIDER } from "@/lib/payments/mock";
+import { createLemonCheckout, lemonConfigured } from "@/lib/payments/lemon";
+import { moderationViolation } from "@/lib/moderation/rules";
 import { getAuthUser } from "@/lib/auth/session";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { normalizeSocial } from "@/lib/plots/social";
+import { listLunarFeatures } from "@/lib/moon/features";
+import { recordPlotEvent } from "@/lib/plots/events";
+import { sendLandingLiveEmail } from "@/lib/email/resend";
 import type { PlotRecord } from "@/types";
 
 const geometrySchema = z.object({
@@ -39,9 +45,17 @@ const claimDetailsSchema = z.object({
       return `https://${value}`;
     })
     .refine((value) => !value || URL.canParse(value), "Enter a valid website."),
-  logoUrl: z.string().max(240).optional().nullable(),
+  socialHandle: z
+    .string()
+    .trim()
+    .max(80)
+    .optional()
+    .default("")
+    .transform((value) => normalizeSocial(value)),
+  logoUrl: z.string().max(500).optional().nullable(),
   noveltyAcknowledged: z.literal(true),
   immediatePerformanceConsent: z.literal(true),
+  termsAccepted: z.literal(true),
 });
 
 export type ActionResult<T> =
@@ -53,7 +67,8 @@ function occupyingPlots(plots: PlotRecord[]) {
     (plot) =>
       plot.status === "active" ||
       plot.status === "reserved" ||
-      plot.status === "payment_pending",
+      plot.status === "payment_pending" ||
+      plot.status === "suspended",
   );
 }
 
@@ -64,7 +79,7 @@ export async function reservePlot(
   if (!parsed.success) return { ok: false, error: "Invalid plot geometry." };
 
   try {
-    const quote = quoteGeometry(parsed.data);
+    const quote = quoteGeometry(parsed.data, await listLunarFeatures());
     const existing = occupyingPlots(await listPlots());
     if (findOverlappingPlot(quote, existing)) {
       return { ok: false, error: "That area is already claimed or reserved." };
@@ -95,12 +110,14 @@ export async function reservePlot(
       name: null,
       description: null,
       websiteUrl: null,
+      socialHandle: null,
       logoUrl: null,
       ownerId: user?.id ?? null,
       createdAt: now.toISOString(),
     };
 
     await upsertPlot(plot);
+    await recordPlotEvent(plot.id, "reserved", user?.id ?? null);
     return { ok: true, data: plot };
   } catch (error) {
     const message = error instanceof QuoteError ? error.message : "Could not reserve this plot.";
@@ -117,9 +134,21 @@ export async function submitClaim(
     return { ok: false, error: issue?.message ?? "Check the claim form and try again." };
   }
 
-  if (parsed.data.logoUrl && parsed.data.logoUrl !== `/api/plots/${parsed.data.plotId}/logo`) {
+  if (
+    parsed.data.logoUrl &&
+    parsed.data.logoUrl !== `/api/plots/${parsed.data.plotId}/logo` &&
+    !parsed.data.logoUrl.startsWith("http://") &&
+    !parsed.data.logoUrl.startsWith("https://")
+  ) {
     return { ok: false, error: "Upload the logo before claiming." };
   }
+
+  const blocked = moderationViolation({
+    name: parsed.data.name,
+    description: parsed.data.description,
+    websiteUrl: parsed.data.websiteUrl,
+  });
+  if (blocked) return { ok: false, error: blocked };
 
   const plot = await getPlot(parsed.data.plotId);
   if (!plot) return { ok: false, error: "This reservation expired. Select the plot again." };
@@ -142,11 +171,13 @@ export async function submitClaim(
     name: parsed.data.name,
     description: parsed.data.description || null,
     websiteUrl: parsed.data.websiteUrl || null,
+    socialHandle: parsed.data.socialHandle || null,
     logoUrl: parsed.data.logoUrl || null,
     ownerId: user?.id ?? plot.ownerId,
   };
 
   await upsertPlot(next);
+  await recordPlotEvent(next.id, "claim_submitted", user?.id ?? null);
   return { ok: true, data: next };
 }
 
@@ -167,10 +198,27 @@ export async function activatePlot(
     pricePaid: plot.quotedPrice,
     claimDate: new Date().toISOString(),
     reservedUntil: null,
+    paymentProvider: payment.provider,
+    paymentId: payment.paymentId,
   };
-
-  void payment;
   await upsertPlot(next);
+  await recordPlotEvent(next.id, "activated", next.ownerId, {
+    provider: payment.provider,
+    paymentId: payment.paymentId,
+  });
+  if (next.ownerId) {
+    const admin = createAdminClient();
+    const email = admin
+      ? (await admin.auth.admin.getUserById(next.ownerId)).data.user?.email
+      : null;
+    if (email) {
+      try {
+        await sendLandingLiveEmail(email, next);
+      } catch {
+        // Payment already succeeded; email is best-effort.
+      }
+    }
+  }
   return { ok: true, data: next };
 }
 
@@ -181,8 +229,39 @@ export async function mockCompletePayment(plotId: string): Promise<ActionResult<
   });
 }
 
-export async function fetchActivePlots() {
-  return listActivePlots();
+export async function startCheckout(
+  plotId: string,
+): Promise<ActionResult<{ mode: "lemon" | "mock"; url?: string; plot?: PlotRecord }>> {
+  const plot = await getPlot(plotId);
+  if (!plot) return { ok: false, error: "This reservation expired. Select the plot again." };
+  if (plot.status === "active") return { ok: true, data: { mode: "mock", plot } };
+  if (plot.status !== "payment_pending") {
+    return { ok: false, error: "Finish naming this landing before paying." };
+  }
+
+  if (lemonConfigured()) {
+    const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+    const user = await getAuthUser();
+    try {
+      const url = await createLemonCheckout({
+        plotId: plot.id,
+        name: plot.name ?? plot.id,
+        email: user?.email,
+        priceUsd: plot.quotedPrice,
+        redirectUrl: `${origin}/?landing=${plot.id}`,
+      });
+      return { ok: true, data: { mode: "lemon", url } };
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : "Could not start checkout.",
+      };
+    }
+  }
+
+  const paid = await mockCompletePayment(plotId);
+  if (!paid.ok) return paid;
+  return { ok: true, data: { mode: "mock", plot: paid.data } };
 }
 
 export async function fetchPlot(plotId: string) {

@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { mergePlots, readLocalPlots, writeLocalPlots } from "@/lib/plots/local";
-import type { LandingMode, PlotRecord, PlotSelection } from "@/types";
+import { migratePlotsToCurrentGrid } from "@/lib/moon/grid";
+import { LUNAR_FEATURES } from "@/lib/moon/regions";
+import type { LandingMode, LunarFeature, PlotRecord, PlotSelection } from "@/types";
 
 interface MoonState {
   isInteracting: boolean;
@@ -10,9 +12,12 @@ interface MoonState {
   selectionMode: boolean;
   selection: PlotSelection | null;
   plots: PlotRecord[];
+  features: LunarFeature[];
   landingPlotId: string | null;
   landingMode: LandingMode;
   landingCinematic: boolean;
+  landingAsOwner: boolean;
+  viewResetAt: number;
   setInteracting: (v: boolean) => void;
   markUserInteracted: () => void;
   enterExploreMode: () => void;
@@ -20,11 +25,13 @@ interface MoonState {
   exitSelectMode: () => void;
   setSelection: (selection: PlotSelection | null) => void;
   hydratePlots: (plots: PlotRecord[]) => void;
+  hydrateFeatures: (features: LunarFeature[]) => void;
   rememberPlot: (plot: PlotRecord) => void;
   startLanding: (plotId: string, cinematic?: boolean) => void;
   setLandingMode: (mode: LandingMode) => void;
   skipLanding: () => void;
   clearLanding: () => void;
+  resetView: () => void;
 }
 
 export const useMoonStore = create<MoonState>()(
@@ -36,9 +43,12 @@ export const useMoonStore = create<MoonState>()(
       selectionMode: false,
       selection: null,
       plots: [],
+      features: LUNAR_FEATURES,
       landingPlotId: null,
       landingMode: "idle",
       landingCinematic: false,
+      landingAsOwner: false,
+      viewResetAt: 0,
       setInteracting: (v) => set({ isInteracting: v }),
       markUserInteracted: () => set({ hasUserInteracted: true }),
       enterExploreMode: () =>
@@ -57,10 +67,14 @@ export const useMoonStore = create<MoonState>()(
       exitSelectMode: () => set({ selectionMode: false, selection: null }),
       setSelection: (selection) => set({ selection }),
       hydratePlots: (plots) => {
-        const merged = mergePlots(plots, mergePlots(get().plots, readLocalPlots()));
+        const merged = mergePlots(
+          migratePlotsToCurrentGrid(plots),
+          mergePlots(get().plots, readLocalPlots()),
+        );
         writeLocalPlots(merged);
         set({ plots: merged });
       },
+      hydrateFeatures: (features) => set({ features }),
       rememberPlot: (plot) => {
         const merged = mergePlots([plot], mergePlots(get().plots, readLocalPlots()));
         writeLocalPlots(merged);
@@ -74,6 +88,7 @@ export const useMoonStore = create<MoonState>()(
           landingPlotId: plotId,
           landingMode: cinematic ? "confirmed" : "flying",
           landingCinematic: cinematic,
+          landingAsOwner: cinematic,
         }),
       setLandingMode: (landingMode) => set({ landingMode }),
       skipLanding: () => set({ landingMode: "arrived", landingCinematic: false }),
@@ -82,7 +97,14 @@ export const useMoonStore = create<MoonState>()(
           landingPlotId: null,
           landingMode: "idle",
           landingCinematic: false,
+          landingAsOwner: false,
         }),
+      resetView: () =>
+        set((state) => ({
+          viewResetAt: state.viewResetAt + 1,
+          selectionMode: false,
+          selection: null,
+        })),
     }),
     {
       name: "craterclaim-selection",

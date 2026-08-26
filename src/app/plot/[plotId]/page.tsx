@@ -31,11 +31,20 @@ export async function generateMetadata({ params }: PlotPageProps): Promise<Metad
       title,
       description,
       type: "article",
+      images: [
+        {
+          url: `/plot/${plotId}/opengraph-image`,
+          width: 1200,
+          height: 630,
+          alt: `${plot.name ?? plot.id} lunar deed`,
+        },
+      ],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title,
       description,
+      images: [`/plot/${plotId}/opengraph-image`],
     },
   };
 }

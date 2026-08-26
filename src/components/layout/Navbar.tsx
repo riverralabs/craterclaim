@@ -20,6 +20,7 @@ import { useMoonStore } from "@/lib/store/moon-store";
 const NAV_LINKS = [
   { href: "/", label: "Explore" },
   { href: "/how-it-works", label: "How It Works" },
+  { href: "/search", label: "Search" },
   { href: "/leaderboard", label: "Leaderboard" },
   { href: "/recent", label: "Recent Claims" },
 ] as const;

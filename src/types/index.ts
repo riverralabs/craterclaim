@@ -35,7 +35,7 @@ export interface PlotSelection {
   price: number;
 }
 
-export type PlotStatus = "reserved" | "payment_pending" | "active";
+export type PlotStatus = "reserved" | "payment_pending" | "active" | "suspended" | "deleted";
 
 export interface PlotRecord {
   id: string;
@@ -56,9 +56,13 @@ export interface PlotRecord {
   name: string | null;
   description: string | null;
   websiteUrl: string | null;
+  socialHandle: string | null;
   logoUrl: string | null;
   ownerId: string | null;
   createdAt: string;
+  paymentProvider?: string | null;
+  paymentId?: string | null;
+  moderationNotes?: string | null;
 }
 
 export type LandingMode = "idle" | "confirmed" | "flying" | "arrived";

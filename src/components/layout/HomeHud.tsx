@@ -19,6 +19,7 @@ export function HomeHud() {
   const enterExploreMode = useMoonStore((state) => state.enterExploreMode);
   const enterSelectMode = useMoonStore((state) => state.enterSelectMode);
   const exitSelectMode = useMoonStore((state) => state.exitSelectMode);
+  const resetView = useMoonStore((state) => state.resetView);
 
   const landings = plots.filter((plot) => plot.status === "active");
   const claimedPixels = landings.reduce((sum, plot) => sum + plot.pixelCount, 0);
@@ -44,7 +45,7 @@ export function HomeHud() {
                   type="button"
                   size="lg"
                   variant="outline"
-                  className="min-h-11 cursor-pointer border-white/15 bg-charcoal/50 px-4 font-heading text-xs tracking-[0.2em] text-electric-white uppercase hover:bg-white/10"
+                  className="min-h-11 cursor-pointer border-white/20 bg-charcoal px-4 font-heading text-xs tracking-[0.2em] text-electric-white uppercase hover:bg-white/10"
                   onClick={exitSelectMode}
                 >
                   Rotate Moon
@@ -53,12 +54,21 @@ export function HomeHud() {
                 <Button
                   type="button"
                   size="lg"
-                  className="min-h-11 cursor-pointer bg-gradient-to-r from-violet to-[#9b6dff] px-4 font-heading text-xs tracking-[0.2em] text-electric-white uppercase hover:from-violet hover:to-violet"
+                  className="min-h-11 cursor-pointer bg-electric-white px-4 font-heading text-xs tracking-[0.2em] text-space uppercase hover:bg-electric-white/90"
                   onClick={enterSelectMode}
                 >
                   Select a plot
                 </Button>
               )}
+              <Button
+                type="button"
+                size="lg"
+                variant="outline"
+                className="min-h-11 cursor-pointer border-white/20 bg-charcoal px-4 font-heading text-xs tracking-[0.2em] text-electric-white uppercase hover:bg-white/10"
+                onClick={resetView}
+              >
+                Reset view
+              </Button>
             </div>
           </div>
         </div>
@@ -69,7 +79,7 @@ export function HomeHud() {
   return (
     <div className="pointer-events-none absolute inset-0 z-20">
       <div className="absolute bottom-0 left-0 max-w-lg px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:bottom-8 sm:left-6 sm:px-0">
-        <p className="font-mono text-[10px] tracking-[0.34em] text-violet uppercase">CraterClaim</p>
+        <p className="font-mono text-[10px] tracking-[0.34em] text-lunar-silver uppercase">CraterClaim</p>
         <h1 className="font-heading mt-2 text-[clamp(1.7rem,5vw,3.4rem)] leading-[0.95] font-bold tracking-[0.04em] text-electric-white uppercase">
           Claim your place on the Moon
         </h1>
@@ -80,7 +90,7 @@ export function HomeHud() {
           <Button
             type="button"
             size="lg"
-            className="min-h-11 flex-1 cursor-pointer bg-gradient-to-r from-violet to-[#9b6dff] font-heading text-xs tracking-[0.2em] uppercase"
+            className="min-h-11 flex-1 cursor-pointer bg-electric-white font-heading text-xs tracking-[0.2em] text-space uppercase hover:bg-electric-white/90"
             onClick={enterExploreMode}
           >
             Explore
@@ -98,10 +108,10 @@ export function HomeHud() {
       </div>
 
       <aside className="pointer-events-auto absolute top-24 right-4 hidden w-[320px] md:block">
-        <HudFrame className="p-5">
+        <HudFrame opaque className="p-5">
           <div className="flex items-center gap-2">
-            <span className="size-1.5 rounded-full bg-violet shadow-[0_0_10px_rgba(124,125,255,1)]" />
-            <p className="font-mono text-[10px] tracking-[0.32em] text-violet uppercase">Live map</p>
+            <span className="size-1.5 rounded-full bg-gold shadow-[0_0_10px_rgba(224,184,79,0.9)]" />
+            <p className="font-mono text-[10px] tracking-[0.32em] text-gold uppercase">Live map</p>
           </div>
           <p className="font-heading mt-3 text-lg font-bold tracking-[0.18em] uppercase">
             Claim a landing
@@ -111,7 +121,7 @@ export function HomeHud() {
           </p>
 
           <div className="mt-5 space-y-2.5 border-t border-white/10 pt-4">
-            <HudStat label="Total plots" value={formatCount(TOTAL_PIXELS)} />
+            <HudStat label="Total pixels" value={formatCount(TOTAL_PIXELS)} />
             <HudStat label="Claimed" value={formatCount(claimedPixels)} />
             <HudStat label="Available" value={formatCount(available)} />
             <HudStat label="Landings" value={formatCount(landings.length)} />
@@ -127,7 +137,7 @@ export function HomeHud() {
             <Button
               type="button"
               size="lg"
-              className="min-h-11 w-full cursor-pointer bg-gradient-to-r from-violet to-[#9b6dff] font-heading text-xs tracking-[0.24em] text-electric-white uppercase hover:from-violet hover:to-violet"
+              className="min-h-11 w-full cursor-pointer bg-electric-white font-heading text-xs tracking-[0.24em] text-space uppercase hover:bg-electric-white/90"
               onClick={enterExploreMode}
             >
               Explore the Moon
@@ -164,11 +174,11 @@ function LegendChip({ tone, label }: { tone: "premium" | "standard"; label: stri
         "inline-flex min-h-8 items-center gap-2 border px-3 font-mono text-[10px] tracking-[0.18em] uppercase",
         tone === "premium"
           ? "border-gold/40 bg-gold/10 text-gold shadow-[0_0_16px_rgba(224,184,79,0.22)]"
-          : "border-violet/35 bg-violet/10 text-violet",
+          : "border-white/18 bg-white/5 text-lunar-silver",
       )}
     >
       <span
-        className={cn("size-2", tone === "premium" ? "bg-gold" : "bg-violet")}
+        className={cn("size-2", tone === "premium" ? "bg-gold" : "bg-lunar-silver")}
       />
       {label}
     </span>

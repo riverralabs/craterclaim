@@ -41,7 +41,7 @@ export function SelectionController() {
       markUserInteracted();
       dragging.current = true;
       start.current = cell;
-      setSelection(rectFromCorners(cell.x, cell.y, cell.x, cell.y));
+      setSelection(rectFromCorners(cell.x, cell.y, cell.x, cell.y, useMoonStore.getState().features));
       element.setPointerCapture(event.pointerId);
     };
 
@@ -49,7 +49,7 @@ export function SelectionController() {
       if (!dragging.current || !start.current) return;
       const cell = pick(event);
       if (!cell) return;
-      setSelection(rectFromCorners(start.current.x, start.current.y, cell.x, cell.y));
+      setSelection(rectFromCorners(start.current.x, start.current.y, cell.x, cell.y, useMoonStore.getState().features));
     };
 
     const onUp = (event: PointerEvent) => {
@@ -58,12 +58,12 @@ export function SelectionController() {
         if (!cell || !useMoonStore.getState().selectionMode) return;
         if (anchor.current) {
           setSelection(
-            rectFromCorners(anchor.current.x, anchor.current.y, cell.x, cell.y),
+            rectFromCorners(anchor.current.x, anchor.current.y, cell.x, cell.y, useMoonStore.getState().features),
           );
           anchor.current = null;
         } else {
           anchor.current = cell;
-          setSelection(rectFromCorners(cell.x, cell.y, cell.x, cell.y));
+          setSelection(rectFromCorners(cell.x, cell.y, cell.x, cell.y, useMoonStore.getState().features));
         }
         return;
       }
