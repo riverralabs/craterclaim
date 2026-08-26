@@ -225,7 +225,7 @@ export function AdminBoard({
                     type="checkbox"
                     name="premium"
                     defaultChecked={feature.isPremium}
-                    className="size-4 accent-gold"
+                    className="size-5 shrink-0 accent-gold"
                   />
                   Premium
                 </label>

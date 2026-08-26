@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Check } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { formatUsd, PIXEL_PRICE } from "@/lib/moon/pricing";
 import { formatLatLng } from "@/lib/moon/coordinates";
@@ -42,30 +43,51 @@ export function ClaimForm() {
   const [consent, setConsent] = useState(false);
   const [terms, setTerms] = useState(false);
   const [lemonUrl, setLemonUrl] = useState<string | null>(null);
+  const selectionKey = selection
+    ? `${selection.x}:${selection.y}:${selection.width}:${selection.height}`
+    : "";
 
   useEffect(() => {
-    void useMoonStore.persist.rehydrate();
-    setHydrated(true);
+    let cancelled = false;
+    void (async () => {
+      await useMoonStore.persist.rehydrate();
+      if (!cancelled) setHydrated(true);
+    })();
+
+    const existing = document.querySelector('script[src*="lemonsqueezy.com/js/lemon.js"]');
+    if (existing) return () => {
+      cancelled = true;
+    };
     const script = document.createElement("script");
     script.src = "https://app.lemonsqueezy.com/js/lemon.js";
     script.defer = true;
     document.body.appendChild(script);
     return () => {
+      cancelled = true;
       script.remove();
     };
   }, []);
 
+  const runReserve = useCallback(async () => {
+    const current = useMoonStore.getState().selection;
+    if (!current) return { ok: false as const, error: "Select a plot first." };
+    return reservePlot({
+      x: current.x,
+      y: current.y,
+      width: current.width,
+      height: current.height,
+    });
+  }, []);
+
   useEffect(() => {
-    if (!hydrated || !selection) return;
+    if (!hydrated || !selectionKey) return;
     let cancelled = false;
+    setReservation(null);
+    setReserveError(null);
+    setLemonUrl(null);
 
     void (async () => {
-      const result = await reservePlot({
-        x: selection.x,
-        y: selection.y,
-        width: selection.width,
-        height: selection.height,
-      });
+      const result = await runReserve();
       if (cancelled) return;
       if (!result.ok) {
         setReserveError(result.error);
@@ -82,7 +104,7 @@ export function ClaimForm() {
     return () => {
       cancelled = true;
     };
-  }, [hydrated, selection]);
+  }, [hydrated, runReserve, selectionKey]);
 
   useEffect(() => {
     if (!reservation?.reservedUntil) return;
@@ -90,7 +112,7 @@ export function ClaimForm() {
       setRemaining(Math.max(0, new Date(reservation.reservedUntil!).getTime() - Date.now()));
     };
     tick();
-    const id = window.setInterval(tick, 250);
+    const id = window.setInterval(tick, 1000);
     return () => window.clearInterval(id);
   }, [reservation]);
 
@@ -252,9 +274,10 @@ export function ClaimForm() {
         <p className="text-xs font-medium tracking-[0.22em] text-violet uppercase">Claim</p>
         <h1 className="font-heading text-4xl font-bold tracking-tight">Name this landing.</h1>
         <p className="text-sm leading-relaxed text-lunar-silver">
-          Checkout is Lemon Squeezy when those keys are set. Until then, local mock checkout
-          still lands a plot so we can test the loop. Digital plots only — not physical land.
-          <Link href="/guidelines" className="ml-1 underline decoration-white/20 hover:text-electric-white">
+          {lemonUrl
+            ? "Checkout opens Lemon Squeezy. Digital plots only — not physical land."
+            : "Checkout is Lemon Squeezy when those keys are set. Until then, local mock checkout still lands a plot so we can test the loop. Digital plots only — not physical land."}{" "}
+          <Link href="/guidelines" className="underline decoration-white/20 hover:text-electric-white">
             Content rules
           </Link>
           .
@@ -314,37 +337,16 @@ export function ClaimForm() {
           <img src={logoPreview} alt="Logo preview" className="size-16 rounded-xl object-cover" />
         ) : null}
 
-        <label className="flex gap-3 text-sm leading-relaxed text-lunar-silver">
-          <input
-            type="checkbox"
-            className="mt-1 size-4 accent-gold"
-            checked={novelty}
-            onChange={(event) => setNovelty(event.target.checked)}
-            required
-          />
+        <LegalCheck checked={novelty} onChange={setNovelty}>
           I understand this is a digital novelty plot, not physical lunar land.
-        </label>
+        </LegalCheck>
 
-        <label className="flex gap-3 text-sm leading-relaxed text-lunar-silver">
-          <input
-            type="checkbox"
-            className="mt-1 size-4 accent-gold"
-            checked={consent}
-            onChange={(event) => setConsent(event.target.checked)}
-            required
-          />
+        <LegalCheck checked={consent} onChange={setConsent}>
           I agree this is an immediately performed digital service. I lose any cooling-off
           right once the landing is live, including in the EU.
-        </label>
+        </LegalCheck>
 
-        <label className="flex gap-3 text-sm leading-relaxed text-lunar-silver">
-          <input
-            type="checkbox"
-            className="mt-1 size-4 accent-gold"
-            checked={terms}
-            onChange={(event) => setTerms(event.target.checked)}
-            required
-          />
+        <LegalCheck checked={terms} onChange={setTerms}>
           I agree to the{" "}
           <Link href="/terms" className="underline decoration-white/20 hover:text-electric-white">
             Terms
@@ -358,7 +360,7 @@ export function ClaimForm() {
             no-refund policy
           </Link>
           .
-        </label>
+        </LegalCheck>
 
         {reserveError ? <p className="text-sm text-red-300">{reserveError}</p> : null}
         {formError ? <p className="text-sm text-red-300">{formError}</p> : null}
@@ -371,11 +373,13 @@ export function ClaimForm() {
             type="submit"
             size="lg"
             disabled={pending || !reservation || expired || Boolean(reserveError) || !novelty || !consent || !terms}
-            className="min-h-11 cursor-pointer bg-electric-white px-5 text-space hover:bg-electric-white/90"
+            className="min-h-11 cursor-pointer bg-electric-white px-5 text-space hover:bg-electric-white/90 disabled:opacity-60"
           >
             {pending
               ? "Opening checkout…"
-              : `Pay ${formatUsd(preview?.quotedPrice ?? selection.price)}`}
+              : !reservation && !reserveError
+                ? "Reserving plot…"
+                : `Pay ${formatUsd(preview?.quotedPrice ?? selection.price)}`}
           </Button>
           <Button asChild size="lg" variant="outline" className="min-h-11 cursor-pointer border-white/15">
             <Link href="/">Back to Moon</Link>
@@ -386,12 +390,39 @@ export function ClaimForm() {
       {preview ? (
         <aside className="h-fit rounded-2xl border border-white/10 bg-charcoal/80 p-4">
           <p className="text-[11px] font-medium tracking-[0.18em] text-violet uppercase">
-            {reservation ? "Held while you check out" : "Selected plot"}
+            {reservation ? "Held while you check out" : reserveError ? "Could not reserve" : "Selected plot"}
           </p>
           {reservation ? (
             <p className="mt-2 font-heading text-3xl tabular-nums">
               {formatRemaining(remaining)}
             </p>
+          ) : reserveError ? (
+            <div className="mt-2 space-y-3">
+              <p className="text-sm text-red-300">{reserveError}</p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="min-h-11 cursor-pointer border-white/15"
+                onClick={() => {
+                  setReserveError(null);
+                  void (async () => {
+                    const result = await runReserve();
+                    if (!result.ok) {
+                      setReserveError(result.error);
+                      return;
+                    }
+                    setReservation(result.data);
+                    void prepareLemonCheckout(result.data.id).then((checkout) => {
+                      if (!checkout.ok || checkout.data.mode !== "lemon" || !checkout.data.url) return;
+                      setLemonUrl(checkout.data.url);
+                    });
+                  })();
+                }}
+              >
+                Try again
+              </Button>
+            </div>
           ) : (
             <p className="mt-2 text-sm text-lunar-silver">Reserving this rectangle…</p>
           )}
@@ -421,6 +452,38 @@ export function ClaimForm() {
         </aside>
       ) : null}
     </div>
+  );
+}
+
+function LegalCheck({
+  checked,
+  onChange,
+  children,
+}: {
+  checked: boolean;
+  onChange: (value: boolean) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3 text-sm leading-relaxed text-lunar-silver">
+      <span className="relative mt-0.5 inline-flex size-5 min-h-5 min-w-5 shrink-0 items-center justify-center">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(event) => onChange(event.target.checked)}
+          required
+          className="absolute inset-0 z-10 size-5 cursor-pointer appearance-none rounded-[4px] border border-white/35 bg-space outline-none checked:border-gold checked:bg-gold focus-visible:ring-2 focus-visible:ring-gold/70"
+        />
+        {checked ? (
+          <Check
+            className="pointer-events-none relative z-20 size-3.5 text-space"
+            strokeWidth={3}
+            aria-hidden
+          />
+        ) : null}
+      </span>
+      <span>{children}</span>
+    </label>
   );
 }
 

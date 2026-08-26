@@ -88,8 +88,26 @@ export async function listPlots() {
   });
 }
 
+export async function listOccupyingPlots() {
+  const plots = await expireReservations();
+  return [...plots.values()].filter(
+    (plot) =>
+      plot.status === "active" ||
+      plot.status === "reserved" ||
+      plot.status === "payment_pending" ||
+      plot.status === "suspended",
+  );
+}
+
 export async function listActivePlots() {
-  return (await listPlots()).filter((plot) => plot.status === "active");
+  await load();
+  return [...bucket().__craterclaimPlots!.values()]
+    .filter((plot) => plot.status === "active")
+    .sort((a, b) => {
+      const aDate = a.claimDate ?? a.createdAt;
+      const bDate = b.claimDate ?? b.createdAt;
+      return bDate.localeCompare(aDate);
+    });
 }
 
 export async function getPlot(id: string) {

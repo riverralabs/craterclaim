@@ -12,6 +12,13 @@ export function rectsOverlap(
   );
 }
 
+export function sameGeometry(
+  a: { x: number; y: number; width: number; height: number },
+  b: { x: number; y: number; width: number; height: number },
+) {
+  return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
+}
+
 export function findOverlappingPlot(
   rect: { x: number; y: number; width: number; height: number },
   plots: PlotRecord[],

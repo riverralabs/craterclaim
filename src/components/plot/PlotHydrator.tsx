@@ -15,9 +15,16 @@ export function PlotHydrator({
   const hydrateFeatures = useMoonStore((state) => state.hydrateFeatures);
 
   useEffect(() => {
-    void useMoonStore.persist.rehydrate();
-    hydratePlots(plots);
-    if (features) hydrateFeatures(features);
+    let cancelled = false;
+    void (async () => {
+      await useMoonStore.persist.rehydrate();
+      if (cancelled) return;
+      hydratePlots(plots);
+      if (features) hydrateFeatures(features);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [features, hydrateFeatures, hydratePlots, plots]);
 
   return null;

@@ -1,10 +1,10 @@
 "use server";
 
 import { z } from "zod";
-import { findOverlappingPlot } from "@/lib/plots/overlap";
+import { rectsOverlap, sameGeometry } from "@/lib/plots/overlap";
 import {
   getPlot,
-  listPlots,
+  listOccupyingPlots,
   nextPlotId,
   reservationMs,
   upsertPlot,
@@ -72,6 +72,10 @@ function occupyingPlots(plots: PlotRecord[]) {
   );
 }
 
+function isHold(plot: PlotRecord) {
+  return plot.status === "reserved" || plot.status === "payment_pending";
+}
+
 export async function reservePlot(
   input: z.infer<typeof geometrySchema>,
 ): Promise<ActionResult<PlotRecord>> {
@@ -79,15 +83,33 @@ export async function reservePlot(
   if (!parsed.success) return { ok: false, error: "Invalid plot geometry." };
 
   try {
-    const quote = quoteGeometry(parsed.data, await listLunarFeatures());
-    const existing = occupyingPlots(await listPlots());
-    if (findOverlappingPlot(quote, existing)) {
-      return { ok: false, error: "That area is already claimed or reserved." };
-    }
-
     const user = await getAuthUser();
     if (isSupabaseConfigured() && !user) {
       return { ok: false, error: "Sign in to reserve a plot." };
+    }
+
+    const quote = quoteGeometry(parsed.data, await listLunarFeatures());
+    const existing = occupyingPlots(await listOccupyingPlots());
+    const overlapping = existing.filter((plot) => rectsOverlap(quote, plot));
+    const ownHold = overlapping.find(
+      (plot) =>
+        isHold(plot) &&
+        sameGeometry(plot, quote) &&
+        (!plot.ownerId || !user || plot.ownerId === user.id),
+    );
+
+    if (ownHold) {
+      const refreshed: PlotRecord = {
+        ...ownHold,
+        ownerId: user?.id ?? ownHold.ownerId,
+        reservedUntil: new Date(Date.now() + reservationMs()).toISOString(),
+      };
+      await upsertPlot(refreshed);
+      return { ok: true, data: refreshed };
+    }
+
+    if (overlapping.length) {
+      return { ok: false, error: "That area is already claimed or reserved." };
     }
 
     const now = new Date();

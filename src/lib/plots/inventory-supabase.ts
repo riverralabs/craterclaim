@@ -114,8 +114,18 @@ export async function listPlots() {
   return ((data ?? []) as PlotRow[]).map(fromRow);
 }
 
-export async function listActivePlots() {
+export async function listOccupyingPlots() {
   await expireReservations();
+  const client = await db();
+  const { data, error } = await client
+    .from("plots")
+    .select("*")
+    .in("status", ["active", "reserved", "payment_pending", "suspended"]);
+  if (error) throw error;
+  return ((data ?? []) as PlotRow[]).map(fromRow);
+}
+
+export async function listActivePlots() {
   const client = await db();
   const { data, error } = await client
     .from("plots")
@@ -127,11 +137,20 @@ export async function listActivePlots() {
 }
 
 export async function getPlot(id: string) {
-  await expireReservations();
   const client = await db();
   const { data, error } = await client.from("plots").select("*").eq("id", id).maybeSingle();
   if (error) throw error;
-  return data ? fromRow(data as PlotRow) : null;
+  if (!data) return null;
+  const plot = fromRow(data as PlotRow);
+  const holdExpired =
+    (plot.status === "reserved" || plot.status === "payment_pending") &&
+    Boolean(plot.reservedUntil) &&
+    new Date(plot.reservedUntil!).getTime() < Date.now();
+  if (holdExpired) {
+    await expireReservations();
+    return null;
+  }
+  return plot;
 }
 
 export async function upsertPlot(plot: PlotRecord) {
@@ -142,11 +161,12 @@ export async function upsertPlot(plot: PlotRecord) {
 }
 
 export async function nextPlotId() {
-  const plots = await listPlots();
-  const used = new Set(plots.map((plot) => plot.id));
+  const client = await db();
   for (let attempt = 0; attempt < 40; attempt += 1) {
     const id = `CLM-${String(Math.floor(1000 + Math.random() * 9000))}`;
-    if (!used.has(id)) return id;
+    const { data, error } = await client.from("plots").select("id").eq("id", id).maybeSingle();
+    if (error) throw error;
+    if (!data) return id;
   }
   return `CLM-${String(Date.now()).slice(-4)}`;
 }

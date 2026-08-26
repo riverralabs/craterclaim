@@ -26,14 +26,22 @@ function fromRow(row: FeatureRow): LunarFeature | null {
   };
 }
 
+let featureCache: { at: number; features: LunarFeature[] } | null = null;
+const FEATURE_CACHE_MS = 5 * 60 * 1000;
+
 export async function listLunarFeatures(): Promise<LunarFeature[]> {
   if (!isSupabaseConfigured()) return LUNAR_FEATURES;
+  if (featureCache && Date.now() - featureCache.at < FEATURE_CACHE_MS) {
+    return featureCache.features;
+  }
   const admin = createAdminClient();
   if (!admin) return LUNAR_FEATURES;
   const { data, error } = await admin.from("lunar_features").select("*").order("name");
   if (error || !data?.length) return LUNAR_FEATURES;
   const features = (data as FeatureRow[]).map(fromRow).filter((row): row is LunarFeature => Boolean(row));
-  return features.length ? features : LUNAR_FEATURES;
+  const next = features.length ? features : LUNAR_FEATURES;
+  featureCache = { at: Date.now(), features: next };
+  return next;
 }
 
 export async function upsertLunarFeature(feature: LunarFeature) {
@@ -53,5 +61,6 @@ export async function upsertLunarFeature(feature: LunarFeature) {
     is_premium: feature.isPremium,
   });
   if (error) throw error;
+  featureCache = null;
   return feature;
 }

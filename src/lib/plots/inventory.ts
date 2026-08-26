@@ -19,6 +19,10 @@ export async function listPlots() {
   return store().listPlots();
 }
 
+export async function listOccupyingPlots() {
+  return store().listOccupyingPlots();
+}
+
 export async function listActivePlots() {
   return store().listActivePlots();
 }
