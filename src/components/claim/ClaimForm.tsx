@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { formatUsd, PIXEL_PRICE } from "@/lib/moon/pricing";
 import { formatLatLng } from "@/lib/moon/coordinates";
-import { reservePlot, startCheckout, submitClaim } from "@/lib/plots/actions";
+import { prepareLemonCheckout, reservePlot, startCheckout, submitClaim } from "@/lib/plots/actions";
 import { trackEvent } from "@/lib/analytics";
 import { useMoonStore } from "@/lib/store/moon-store";
 import { cn } from "@/lib/utils";
@@ -41,6 +41,7 @@ export function ClaimForm() {
   const [novelty, setNovelty] = useState(false);
   const [consent, setConsent] = useState(false);
   const [terms, setTerms] = useState(false);
+  const [lemonUrl, setLemonUrl] = useState<string | null>(null);
 
   useEffect(() => {
     void useMoonStore.persist.rehydrate();
@@ -72,6 +73,10 @@ export function ClaimForm() {
       }
       setReservation(result.data);
       setReserveError(null);
+      void prepareLemonCheckout(result.data.id).then((checkout) => {
+        if (cancelled || !checkout.ok || checkout.data.mode !== "lemon" || !checkout.data.url) return;
+        setLemonUrl(checkout.data.url);
+      });
     })();
 
     return () => {
@@ -177,7 +182,9 @@ export function ClaimForm() {
       return;
     }
 
-    const checkout = await startCheckout(submitted.data.id);
+    const checkout = lemonUrl
+      ? { ok: true as const, data: { mode: "lemon" as const, url: lemonUrl } }
+      : await startCheckout(submitted.data.id);
     if (!checkout.ok) {
       setPending(false);
       setFormError(checkout.error);
@@ -262,7 +269,7 @@ export function ClaimForm() {
             value={name}
             onChange={(event) => setName(event.target.value)}
             className={fieldClass}
-            placeholder="Riverra Labs"
+            placeholder="Enter the name"
           />
         </label>
 
@@ -367,7 +374,7 @@ export function ClaimForm() {
             className="min-h-11 cursor-pointer bg-electric-white px-5 text-space hover:bg-electric-white/90"
           >
             {pending
-              ? "Claiming…"
+              ? "Opening checkout…"
               : `Pay ${formatUsd(preview?.quotedPrice ?? selection.price)}`}
           </Button>
           <Button asChild size="lg" variant="outline" className="min-h-11 cursor-pointer border-white/15">

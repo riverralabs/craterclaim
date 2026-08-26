@@ -28,6 +28,13 @@ export const metadata: Metadata = {
     "Claim a digital lunar plot, put your startup, project, community, or name there, and leave your mark on a permanent public Moon map.",
   applicationName: "CraterClaim",
   keywords: ["CraterClaim", "Moon", "digital lunar plot", "lunar map"],
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/brand/logo.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [{ url: "/brand/logo.png", sizes: "180x180" }],
+  },
 };
 
 export const viewport: Viewport = {

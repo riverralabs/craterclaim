@@ -229,6 +229,33 @@ export async function mockCompletePayment(plotId: string): Promise<ActionResult<
   });
 }
 
+export async function prepareLemonCheckout(
+  plotId: string,
+): Promise<ActionResult<{ mode: "lemon" | "mock"; url?: string }>> {
+  const plot = await getPlot(plotId);
+  if (!plot) return { ok: false, error: "This reservation expired. Select the plot again." };
+  if (plot.status === "active") return { ok: true, data: { mode: "mock" } };
+  if (!lemonConfigured()) return { ok: true, data: { mode: "mock" } };
+
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const user = await getAuthUser();
+  try {
+    const url = await createLemonCheckout({
+      plotId: plot.id,
+      name: plot.name ?? plot.id,
+      email: user?.email,
+      priceUsd: plot.quotedPrice,
+      redirectUrl: `${origin}/?landing=${plot.id}`,
+    });
+    return { ok: true, data: { mode: "lemon", url } };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Could not start checkout.",
+    };
+  }
+}
+
 export async function startCheckout(
   plotId: string,
 ): Promise<ActionResult<{ mode: "lemon" | "mock"; url?: string; plot?: PlotRecord }>> {

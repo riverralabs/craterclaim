@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { OAUTH_PROVIDERS, oauthCallbackUrl, type OAuthProviderId } from "@/lib/auth/oauth";
 import { Button } from "@/components/ui/button";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
 function GoogleMark() {
   return (
@@ -37,15 +40,91 @@ function XMark() {
   );
 }
 
-function ProviderIcon({ id }: { id: OAuthProviderId }) {
-  if (id === "google") return <GoogleMark />;
-  return <XMark />;
+function loadGis(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (window.google?.accounts?.id) return Promise.resolve();
+  const existing = document.querySelector<HTMLScriptElement>("script[data-gsi='true']");
+  if (existing) {
+    return new Promise((resolve, reject) => {
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => reject(new Error("Could not load Google.")), { once: true });
+    });
+  }
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.dataset.gsi = "true";
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Could not load Google."));
+    document.head.appendChild(script);
+  });
 }
 
 export function OAuthButtons({ nextPath }: { nextPath: string }) {
   const configured = isSupabaseConfigured();
+  const router = useRouter();
+  const googleHost = useRef<HTMLDivElement>(null);
   const [pending, setPending] = useState<OAuthProviderId | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [gisReady, setGisReady] = useState(false);
+
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) return;
+    let cancelled = false;
+    void loadGis()
+      .then(() => {
+        if (cancelled) return;
+        setGisReady(true);
+      })
+      .catch((caught: unknown) => {
+        if (!cancelled) setError(caught instanceof Error ? caught.message : "Could not load Google.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!gisReady || !GOOGLE_CLIENT_ID || !googleHost.current || !window.google?.accounts?.id) return;
+    const host = googleHost.current;
+    host.replaceChildren();
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      ux_mode: "popup",
+      auto_select: false,
+      callback: async (response) => {
+        setPending("google");
+        setError(null);
+        try {
+          const supabase = createClient();
+          const { error: tokenError } = await supabase.auth.signInWithIdToken({
+            provider: "google",
+            token: response.credential,
+          });
+          if (tokenError) {
+            setError(tokenError.message);
+            return;
+          }
+          router.replace(nextPath.startsWith("/") ? nextPath : "/claim");
+          router.refresh();
+        } catch (caught) {
+          setError(caught instanceof Error ? caught.message : "Could not finish Google sign-in.");
+        } finally {
+          setPending(null);
+        }
+      },
+    });
+    window.google.accounts.id.renderButton(host, {
+      type: "standard",
+      theme: "filled_black",
+      size: "large",
+      text: "continue_with",
+      shape: "pill",
+      width: Math.min(400, host.clientWidth || 336),
+      logo_alignment: "left",
+    });
+  }, [gisReady, nextPath, router]);
 
   if (!configured) {
     return (
@@ -77,7 +156,29 @@ export function OAuthButtons({ nextPath }: { nextPath: string }) {
 
   return (
     <div className="space-y-3">
-      {OAUTH_PROVIDERS.map((provider) => (
+      {GOOGLE_CLIENT_ID ? (
+        <div className="relative min-h-11 w-full overflow-hidden rounded-full">
+          <div ref={googleHost} className="flex min-h-11 w-full justify-center [&>div]:w-full" />
+          {pending === "google" ? (
+            <p className="absolute inset-0 flex items-center justify-center bg-space/80 text-sm text-electric-white">
+              Signing in…
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        <Button
+          type="button"
+          size="lg"
+          variant="outline"
+          disabled={Boolean(pending)}
+          className="min-h-11 w-full cursor-pointer gap-2.5 border-white/15"
+          onClick={() => void start("google")}
+        >
+          <GoogleMark />
+          {pending === "google" ? "Redirecting…" : "Continue with Google"}
+        </Button>
+      )}
+      {OAUTH_PROVIDERS.filter((provider) => provider.id !== "google").map((provider) => (
         <Button
           key={provider.id}
           type="button"
@@ -87,7 +188,7 @@ export function OAuthButtons({ nextPath }: { nextPath: string }) {
           className="min-h-11 w-full cursor-pointer gap-2.5 border-white/15"
           onClick={() => void start(provider.id)}
         >
-          <ProviderIcon id={provider.id} />
+          <XMark />
           {pending === provider.id ? "Redirecting…" : provider.label}
         </Button>
       ))}

@@ -27,6 +27,7 @@ export async function createLemonCheckout(input: {
 
   const response = await fetch("https://api.lemonsqueezy.com/v1/checkouts", {
     method: "POST",
+    signal: AbortSignal.timeout(10_000),
     headers: {
       Accept: "application/vnd.api+json",
       "Content-Type": "application/vnd.api+json",

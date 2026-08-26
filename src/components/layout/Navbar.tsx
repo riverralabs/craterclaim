@@ -14,6 +14,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useClaimSelect } from "@/hooks/useClaimSelect";
 import { cn } from "@/lib/utils";
 import { useMoonStore } from "@/lib/store/moon-store";
 
@@ -28,6 +29,7 @@ const NAV_LINKS = [
 export function Navbar() {
   const pathname = usePathname();
   const enterExploreMode = useMoonStore((state) => state.enterExploreMode);
+  const enterSelect = useClaimSelect();
 
   return (
     <header className="pointer-events-none absolute inset-x-0 top-0 z-30 p-3 sm:p-4">
@@ -80,11 +82,18 @@ export function Navbar() {
         <div className="flex items-center gap-2">
           <AuthMenu />
           <Button
-            asChild
             size="lg"
             className="hidden min-h-11 cursor-pointer bg-electric-white px-4 text-space hover:bg-electric-white/90 sm:inline-flex"
+            onClick={enterSelect}
           >
-            <Link href="/claim">Claim Your Plot</Link>
+            Claim Your Plot
+          </Button>
+          <Button
+            size="lg"
+            className="min-h-11 cursor-pointer bg-electric-white px-3 text-sm text-space hover:bg-electric-white/90 sm:hidden"
+            onClick={enterSelect}
+          >
+            Claim
           </Button>
 
           <Sheet>
@@ -134,11 +143,11 @@ export function Navbar() {
                   );
                 })}
                 <Button
-                  asChild
                   size="lg"
                   className="mt-3 min-h-11 cursor-pointer bg-electric-white text-space hover:bg-electric-white/90"
+                  onClick={enterSelect}
                 >
-                  <Link href="/claim">Claim Your Plot</Link>
+                  Claim Your Plot
                 </Button>
                 <AuthMenu compact />
               </nav>

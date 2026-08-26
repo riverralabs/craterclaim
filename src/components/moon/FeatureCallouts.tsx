@@ -44,9 +44,9 @@ function paintCallouts(pins: CalloutPin[], compact: boolean) {
   const root = document.getElementById("moon-callouts");
   if (!root) return;
   root.dataset.count = String(pins.length);
-  const tick = compact ? 12 : 16;
-  const titleSize = compact ? 9 : 11;
-  const subSize = compact ? 7 : 8;
+  const tick = compact ? 14 : 16;
+  const titleSize = compact ? 11 : 11;
+  const subSize = compact ? 9 : 8;
   const groups = pins
     .map((pin) => {
       const bracket =
@@ -68,8 +68,8 @@ function paintCallouts(pins: CalloutPin[], compact: boolean) {
       const transform =
         pin.side === "left" ? "translate(calc(-100% - 8px), -50%)" : "translate(10px, -50%)";
       return `<div data-callout="true" style="position:absolute;left:${pin.labelX}px;top:${pin.labelY}px;transform:${transform};white-space:nowrap">
-          <p style="margin:0;font-family:Syne,ui-sans-serif,sans-serif;font-size:${titleSize}px;font-weight:700;letter-spacing:0.18em;color:#f4f6f8;text-transform:uppercase;line-height:1.15">${escapeHtml(pin.title)}</p>
-          <p style="margin:2px 0 0;font-family:'Geist Mono',ui-monospace,monospace;font-size:${subSize}px;letter-spacing:0.24em;color:#e0b84f;text-transform:uppercase;line-height:1">${escapeHtml(pin.subtitle)}</p>
+          <p style="margin:0;font-family:Syne,ui-sans-serif,sans-serif;font-size:${titleSize}px;font-weight:700;letter-spacing:${compact ? "0.08em" : "0.18em"};color:#f4f6f8;text-transform:uppercase;line-height:1.2">${escapeHtml(pin.title)}</p>
+          <p style="margin:3px 0 0;font-family:'Geist Mono',ui-monospace,monospace;font-size:${subSize}px;letter-spacing:${compact ? "0.1em" : "0.24em"};color:#e0b84f;text-transform:uppercase;line-height:1.15">${escapeHtml(pin.subtitle)}</p>
         </div>`;
     })
     .join("");

@@ -24,13 +24,13 @@ export function SelectionPanel() {
   const lngHemisphere = selection.centerLng >= 0 ? "E" : "W";
 
   return (
-    <aside className="pointer-events-none absolute inset-x-3 bottom-[5.5rem] z-30 md:inset-auto md:top-24 md:right-4 md:bottom-auto md:w-[360px]">
+    <aside className="pointer-events-none absolute inset-x-3 bottom-[7.25rem] z-30 md:inset-auto md:top-24 md:right-4 md:bottom-auto md:w-[360px]">
       <HudFrame
         accent={overlap ? "danger" : selection.zone === "premium" ? "gold" : "silver"}
         opaque
         className="pointer-events-auto p-4"
       >
-        <p className={cn("font-mono text-[10px] tracking-[0.28em] uppercase", overlap ? "text-red-300" : "text-lunar-silver")}>
+        <p className={cn("font-mono text-xs tracking-[0.16em] uppercase sm:text-[10px] sm:tracking-[0.28em]", overlap ? "text-red-300" : "text-lunar-silver")}>
           {overlap ? "Selection blocked" : "Area selection active"}
         </p>
         <dl className="mt-3 space-y-1.5 text-sm">
@@ -94,8 +94,8 @@ function Row({
 }) {
   return (
     <div className="flex items-start justify-between gap-3">
-      <dt className="font-mono text-[10px] tracking-[0.22em] text-lunar-silver uppercase">{label}</dt>
-      <dd className={gold ? "text-right text-gold" : "text-right"}>{value}</dd>
+      <dt className="font-mono text-[11px] tracking-[0.12em] text-lunar-silver uppercase sm:text-[10px] sm:tracking-[0.22em]">{label}</dt>
+      <dd className={gold ? "text-right text-sm text-gold sm:text-base" : "text-right text-sm sm:text-base"}>{value}</dd>
     </div>
   );
 }

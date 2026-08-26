@@ -7,7 +7,12 @@ import { useMoonStore } from "@/lib/store/moon-store";
 export function LandingQuery() {
   const searchParams = useSearchParams();
   const startLanding = useMoonStore((state) => state.startLanding);
+  const enterSelectMode = useMoonStore((state) => state.enterSelectMode);
   const plots = useMoonStore((state) => state.plots);
+
+  useEffect(() => {
+    if (searchParams.get("select") === "1") enterSelectMode();
+  }, [enterSelectMode, searchParams]);
 
   useEffect(() => {
     const landing = searchParams.get("landing");

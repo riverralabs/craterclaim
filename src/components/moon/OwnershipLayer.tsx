@@ -46,7 +46,7 @@ function drawGrid(ctx: CanvasRenderingContext2D) {
     ctx.moveTo(0, Math.round(y * sy) + 0.5);
     ctx.lineTo(MAP_WIDTH, Math.round(y * sy) + 0.5);
   }
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 0.7;
   ctx.strokeStyle = "rgba(6, 8, 14, 0.22)";
   ctx.stroke();
   ctx.strokeStyle = "rgba(168, 188, 214, 0.1)";
@@ -61,7 +61,7 @@ function drawGrid(ctx: CanvasRenderingContext2D) {
     ctx.moveTo(0, Math.round(y * sy) + 0.5);
     ctx.lineTo(MAP_WIDTH, Math.round(y * sy) + 0.5);
   }
-  ctx.lineWidth = 1.35;
+  ctx.lineWidth = 1.05;
   ctx.strokeStyle = "rgba(5, 6, 12, 0.48)";
   ctx.stroke();
   ctx.strokeStyle = "rgba(196, 214, 236, 0.22)";

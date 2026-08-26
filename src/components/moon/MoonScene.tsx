@@ -141,7 +141,7 @@ export function MoonScene() {
             isMobile={isMobile}
             showLabels={!selectionMode && landingMode === "idle"}
             avoidRight={isExploring || isMobile ? 28 : 348}
-            avoidBottom={isMobile ? (isExploring ? 88 : 210) : isExploring ? 84 : 28}
+            avoidBottom={isMobile ? (isExploring ? 132 : 168) : isExploring ? 84 : 28}
             hero={!isExploring && !isMobile}
           />
         </Suspense>

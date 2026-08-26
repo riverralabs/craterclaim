@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { HudFrame } from "@/components/ui/hud-frame";
 import { formatUsd, PIXEL_PRICE, TOTAL_PIXELS } from "@/lib/moon/pricing";
+import { useClaimSelect } from "@/hooks/useClaimSelect";
 import { useMoonStore } from "@/lib/store/moon-store";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +20,7 @@ export function HomeHud() {
   const enterSelectMode = useMoonStore((state) => state.enterSelectMode);
   const exitSelectMode = useMoonStore((state) => state.exitSelectMode);
   const resetView = useMoonStore((state) => state.resetView);
+  const enterSelect = useClaimSelect();
 
   const landings = plots.filter((plot) => plot.status === "active");
   const claimedPixels = landings.reduce((sum, plot) => sum + plot.pixelCount, 0);
@@ -32,20 +33,23 @@ export function HomeHud() {
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20">
         <div className="bg-gradient-to-t from-space/90 to-transparent pt-16 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <p className="text-center font-mono text-[10px] tracking-[0.28em] text-lunar-silver uppercase sm:text-left">
+            <p className="text-center text-xs font-medium tracking-[0.12em] text-lunar-silver uppercase sm:text-left sm:font-mono sm:text-[10px] sm:tracking-[0.28em]">
               {selectionMode
                 ? "Drag a rectangle · snaps to 10×10"
-                : "Drag to rotate · Scroll or pinch to zoom"}
+                : "Drag to rotate · pinch to zoom"}
             </p>
-            <div className="pointer-events-auto flex flex-wrap items-center justify-center gap-2">
-              <LegendChip tone="standard" label={`Standard ${formatUsd(PIXEL_PRICE.standard)}/px`} />
-              <LegendChip tone="premium" label={`Premium ${formatUsd(PIXEL_PRICE.premium)}/px`} />
+            <div className="pointer-events-auto flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+              <div className="flex items-center justify-center gap-2">
+                <LegendChip tone="standard" label={`Standard ${formatUsd(PIXEL_PRICE.standard)}/px`} />
+                <LegendChip tone="premium" label={`Premium ${formatUsd(PIXEL_PRICE.premium)}/px`} />
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
               {selectionMode ? (
                 <Button
                   type="button"
                   size="lg"
                   variant="outline"
-                  className="min-h-11 cursor-pointer border-white/20 bg-charcoal px-4 font-heading text-xs tracking-[0.2em] text-electric-white uppercase hover:bg-white/10"
+                  className="min-h-11 cursor-pointer border-white/20 bg-charcoal px-4 text-sm font-semibold tracking-wide text-electric-white uppercase hover:bg-white/10 sm:font-heading sm:text-xs sm:tracking-[0.2em]"
                   onClick={exitSelectMode}
                 >
                   Rotate Moon
@@ -54,7 +58,7 @@ export function HomeHud() {
                 <Button
                   type="button"
                   size="lg"
-                  className="min-h-11 cursor-pointer bg-electric-white px-4 font-heading text-xs tracking-[0.2em] text-space uppercase hover:bg-electric-white/90"
+                  className="min-h-11 cursor-pointer bg-electric-white px-4 text-sm font-semibold tracking-wide text-space uppercase hover:bg-electric-white/90 sm:font-heading sm:text-xs sm:tracking-[0.2em]"
                   onClick={enterSelectMode}
                 >
                   Select a plot
@@ -64,11 +68,12 @@ export function HomeHud() {
                 type="button"
                 size="lg"
                 variant="outline"
-                className="min-h-11 cursor-pointer border-white/20 bg-charcoal px-4 font-heading text-xs tracking-[0.2em] text-electric-white uppercase hover:bg-white/10"
+                className="min-h-11 cursor-pointer border-white/20 bg-charcoal px-4 text-sm font-semibold tracking-wide text-electric-white uppercase hover:bg-white/10 sm:font-heading sm:text-xs sm:tracking-[0.2em]"
                 onClick={resetView}
               >
                 Reset view
               </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -80,7 +85,7 @@ export function HomeHud() {
     <div className="pointer-events-none absolute inset-0 z-20">
       <div className="absolute bottom-0 left-0 max-w-lg px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:bottom-8 sm:left-6 sm:px-0">
         <p className="font-mono text-[10px] tracking-[0.34em] text-lunar-silver uppercase">CraterClaim</p>
-        <h1 className="font-heading mt-2 text-[clamp(1.7rem,5vw,3.4rem)] leading-[0.95] font-bold tracking-[0.04em] text-electric-white uppercase">
+        <h1 className="font-heading mt-2 text-[clamp(1.85rem,7vw,3.4rem)] leading-[0.95] font-bold tracking-[0.03em] text-electric-white uppercase">
           Claim your place on the Moon
         </h1>
         <p className="mt-3 hidden max-w-sm text-sm leading-relaxed text-lunar-silver sm:block">
@@ -90,20 +95,20 @@ export function HomeHud() {
           <Button
             type="button"
             size="lg"
-            className="min-h-11 flex-1 cursor-pointer bg-electric-white font-heading text-xs tracking-[0.2em] text-space uppercase hover:bg-electric-white/90"
+            className="min-h-11 flex-1 cursor-pointer bg-electric-white text-sm font-semibold tracking-wide text-space uppercase hover:bg-electric-white/90"
             onClick={enterExploreMode}
           >
             Explore
           </Button>
-          <Link
-            href="/claim"
-            className={cn(
-              buttonVariants({ variant: "outline", size: "lg" }),
-              "min-h-11 flex-1 cursor-pointer border-white/15 font-heading text-xs tracking-[0.2em] uppercase",
-            )}
+          <Button
+            type="button"
+            size="lg"
+            variant="outline"
+            className="min-h-11 flex-1 cursor-pointer border-white/15 text-sm font-semibold tracking-wide uppercase"
+            onClick={enterSelect}
           >
             Claim
-          </Link>
+          </Button>
         </div>
       </div>
 
@@ -142,15 +147,15 @@ export function HomeHud() {
             >
               Explore the Moon
             </Button>
-            <Link
-              href="/claim"
-              className={cn(
-                buttonVariants({ variant: "outline", size: "lg" }),
-                "min-h-11 w-full cursor-pointer border-white/15 font-heading text-xs tracking-[0.24em] uppercase",
-              )}
+            <Button
+              type="button"
+              size="lg"
+              variant="outline"
+              className="min-h-11 w-full cursor-pointer border-white/15 font-heading text-xs tracking-[0.24em] uppercase"
+              onClick={enterSelect}
             >
               Claim your plot
-            </Link>
+            </Button>
           </div>
         </HudFrame>
       </aside>
@@ -171,7 +176,7 @@ function LegendChip({ tone, label }: { tone: "premium" | "standard"; label: stri
   return (
     <span
       className={cn(
-        "inline-flex min-h-8 items-center gap-2 border px-3 font-mono text-[10px] tracking-[0.18em] uppercase",
+        "inline-flex min-h-8 items-center gap-2 border px-3 font-mono text-[11px] tracking-[0.1em] uppercase sm:text-[10px] sm:tracking-[0.18em]",
         tone === "premium"
           ? "border-gold/40 bg-gold/10 text-gold shadow-[0_0_16px_rgba(224,184,79,0.22)]"
           : "border-white/18 bg-white/5 text-lunar-silver",
