@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalPage kicker="Legal" title="Privacy." updated="26 August 2026">
+    <LegalPage kicker="Legal" title="Privacy." updated="27 August 2026">
       <p>
         CraterClaim is a public map. What you put on a landing is meant to be seen. This notice
         explains the smaller set of data we keep so you can sign in, pay, and come back to your
@@ -21,8 +21,9 @@ export default function PrivacyPage() {
         Google, Apple, or X authenticate you. We receive an account id and, usually, an email
         address. We do not store your password. Lemon Squeezy processes payment and holds card
         and billing details. PostHog may record product analytics if enabled. Resend sends the
-        “your landing is live” email if enabled. Supabase stores plots, logos, and the account
-        id that owns them.
+        “your landing is live” email if enabled. Sentry records application errors and a sample
+        of performance traces so we can fix outages. Supabase stores plots, logos, and the
+        account id that owns them.
       </p>
 
       <h2>What we store</h2>

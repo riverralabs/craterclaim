@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import { activatePlot } from "@/lib/plots/actions";
+import { activatePlot } from "@/lib/plots/activate";
 import { verifyWebhookSignature } from "@/lib/payments/mock";
 import { plotIdFromLemonPayload, verifyLemonSignature } from "@/lib/payments/lemon";
 
 export async function POST(request: Request) {
   const body = await request.text();
   const lemonSignature = request.headers.get("x-signature");
-  const mockSignature = request.headers.get("x-webhook-signature");
 
   if (lemonSignature) {
     if (!verifyLemonSignature(body, lemonSignature)) {
@@ -33,6 +32,11 @@ export async function POST(request: Request) {
     return NextResponse.json(result);
   }
 
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ ok: false, error: "Invalid Lemon Squeezy signature." }, { status: 401 });
+  }
+
+  const mockSignature = request.headers.get("x-webhook-signature");
   if (!verifyWebhookSignature(body, mockSignature)) {
     return NextResponse.json({ ok: false, error: "Invalid webhook signature." }, { status: 401 });
   }

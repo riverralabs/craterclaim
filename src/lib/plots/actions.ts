@@ -15,7 +15,7 @@ import { createLemonCheckout, lemonConfigured } from "@/lib/payments/lemon";
 import { moderationViolation } from "@/lib/moderation/rules";
 import { getAuthUser } from "@/lib/auth/session";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { activatePlot } from "@/lib/plots/activate";
 import { normalizeSocial } from "@/lib/plots/social";
 import { listLunarFeatures } from "@/lib/moon/features";
 import { recordPlotEvent } from "@/lib/plots/events";
@@ -43,7 +43,15 @@ const claimDetailsSchema = z.object({
       if (/^https?:\/\//i.test(value)) return value;
       return `https://${value}`;
     })
-    .refine((value) => !value || URL.canParse(value), "Enter a valid website."),
+    .refine((value) => {
+      if (!value) return true;
+      try {
+        const parsed = new URL(value);
+        return parsed.protocol === "http:" || parsed.protocol === "https:";
+      } catch {
+        return false;
+      }
+    }, "Enter a valid website."),
   socialHandle: z
     .string()
     .trim()
@@ -202,56 +210,6 @@ export async function submitClaim(
   return { ok: true, data: next };
 }
 
-export async function activatePlot(
-  plotId: string,
-  payment: { provider: string; paymentId: string },
-): Promise<ActionResult<PlotRecord>> {
-  const plot = await getPlot(plotId);
-  if (!plot) return { ok: false, error: "Unknown plot." };
-  if (plot.status === "active") return { ok: true, data: plot };
-  if (plot.status !== "payment_pending") {
-    return { ok: false, error: "This plot is not ready for payment." };
-  }
-
-  const next: PlotRecord = {
-    ...plot,
-    status: "active",
-    pricePaid: plot.quotedPrice,
-    claimDate: new Date().toISOString(),
-    reservedUntil: null,
-    paymentProvider: payment.provider,
-    paymentId: payment.paymentId,
-  };
-  await upsertPlot(next);
-  await recordPlotEvent(next.id, "activated", next.ownerId, {
-    provider: payment.provider,
-    paymentId: payment.paymentId,
-  });
-  if (next.ownerId) {
-    const admin = createAdminClient();
-    const email = admin
-      ? (await admin.auth.admin.getUserById(next.ownerId)).data.user?.email
-      : null;
-    if (email) {
-      try {
-        const { sendLandingLiveEmail } = await import("@/lib/email/resend");
-        await sendLandingLiveEmail(email, next);
-      } catch (error) {
-        const Sentry = await import("@sentry/nextjs");
-        Sentry.captureException(error);
-      }
-    }
-  }
-  return { ok: true, data: next };
-}
-
-export async function mockCompletePayment(plotId: string): Promise<ActionResult<PlotRecord>> {
-  return activatePlot(plotId, {
-    provider: MOCK_PROVIDER,
-    paymentId: mockPaymentId(plotId),
-  });
-}
-
 export async function prepareLemonCheckout(
   plotId: string,
 ): Promise<ActionResult<{ mode: "lemon" | "mock"; url?: string }>> {
@@ -289,15 +247,30 @@ export async function startCheckout(
     return { ok: false, error: "Finish naming this landing before paying." };
   }
 
+  const user = await getAuthUser();
+  if (isSupabaseConfigured()) {
+    if (!user) return { ok: false, error: "Sign in to pay." };
+    if (plot.ownerId && plot.ownerId !== user.id) {
+      return { ok: false, error: "This reservation belongs to another account." };
+    }
+  }
+
+  let priceUsd = plot.quotedPrice;
+  try {
+    priceUsd = quoteGeometry(plot, await listLunarFeatures()).price;
+  } catch (error) {
+    const message = error instanceof QuoteError ? error.message : "Could not price this plot.";
+    return { ok: false, error: message };
+  }
+
   if (lemonConfigured()) {
     const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-    const user = await getAuthUser();
     try {
       const url = await createLemonCheckout({
         plotId: plot.id,
         name: plot.name ?? plot.id,
         email: user?.email,
-        priceUsd: plot.quotedPrice,
+        priceUsd,
         redirectUrl: `${origin}/?landing=${plot.id}`,
       });
       return { ok: true, data: { mode: "lemon", url } };
@@ -309,7 +282,14 @@ export async function startCheckout(
     }
   }
 
-  const paid = await mockCompletePayment(plotId);
+  if (process.env.NODE_ENV === "production") {
+    return { ok: false, error: "Checkout is not available." };
+  }
+
+  const paid = await activatePlot(plotId, {
+    provider: MOCK_PROVIDER,
+    paymentId: mockPaymentId(plotId),
+  });
   if (!paid.ok) return paid;
   return { ok: true, data: { mode: "mock", plot: paid.data } };
 }

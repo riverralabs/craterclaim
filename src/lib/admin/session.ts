@@ -7,7 +7,7 @@ const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 export type AdminSession = { email: string; exp: number };
 
 function signingKey() {
-  return process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || "";
+  return process.env.ADMIN_SESSION_SECRET || "";
 }
 
 function adminEmail() {

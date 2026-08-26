@@ -24,22 +24,21 @@ export async function GET(_request: Request, { params }: RouteProps) {
     return new NextResponse(new Uint8Array(stored.bytes), {
       headers: {
         "Content-Type": stored.mimeType,
+        "X-Content-Type-Options": "nosniff",
         "Cache-Control": "public, max-age=3600",
       },
     });
   }
 
   const plot = await getPlot(plotId);
-  if (plot?.logoUrl?.startsWith("http")) {
-    return NextResponse.redirect(plot.logoUrl);
-  }
   if (plot?.logoUrl?.startsWith("data:")) {
     const match = plot.logoUrl.match(/^data:([^;]+);base64,(.+)$/);
-    if (match) {
+    if (match && isAllowedLogoType(match[1])) {
       const bytes = Buffer.from(match[2], "base64");
       return new NextResponse(bytes, {
         headers: {
           "Content-Type": match[1],
+          "X-Content-Type-Options": "nosniff",
           "Cache-Control": "public, max-age=3600",
         },
       });

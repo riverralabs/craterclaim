@@ -10,11 +10,7 @@ function safeNext(path: string | null) {
 
 function requestOrigin(request: NextRequest) {
   const env = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
-  const forwarded = request.headers.get("x-forwarded-host");
-  const proto = request.headers.get("x-forwarded-proto") ?? "https";
-  if (forwarded && !/localhost|127\.0\.0\.1/i.test(forwarded)) {
-    return `${proto}://${forwarded}`;
-  }
+  if (process.env.NODE_ENV === "production" && env) return env;
   const { origin } = new URL(request.url);
   if (/localhost|127\.0\.0\.1/i.test(origin) && env && !/localhost|127\.0\.0\.1/i.test(env)) {
     return env;
