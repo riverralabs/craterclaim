@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
 import { ClaimForm } from "@/components/claim/ClaimForm";
-import { OAuthButtons } from "@/components/auth/OAuthButtons";
+import { LoginForm } from "@/components/auth/LoginForm";
 import { getAuthUser } from "@/lib/auth/session";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -28,10 +28,10 @@ export default async function ClaimPage() {
                 Sign in to claim this plot.
               </h1>
               <p className="mt-4 max-w-lg leading-relaxed text-lunar-silver">
-                Reservations are held for 15 minutes and attached to your Google, Apple, or X
-                account. Digital plots only — not physical land, not ads.
+                Explore is public. Sign in with Google, X, or email so this claim stays yours
+                after payment. Digital plots only — not physical land, not ads.
               </p>
-              <OAuthButtons nextPath="/claim" />
+              <LoginForm nextPath="/claim" />
             </div>
           ) : (
             <ClaimForm />

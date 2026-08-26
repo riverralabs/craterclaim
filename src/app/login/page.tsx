@@ -29,8 +29,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             Sign in to claim.
           </h1>
           <p className="mt-4 max-w-lg leading-relaxed text-lunar-silver">
-            Use Google, Apple, or X. No password, no magic link. Landings attach to that
-            account.
+            Explore is public. Sign in with Google, X, or email only when you claim, so that
+            landing stays attached to you.
           </p>
           <LoginForm nextPath={nextPath} error={params.error} />
         </div>
