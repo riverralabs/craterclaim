@@ -236,8 +236,9 @@ export async function activatePlot(
       try {
         const { sendLandingLiveEmail } = await import("@/lib/email/resend");
         await sendLandingLiveEmail(email, next);
-      } catch {
-        // Payment already succeeded; email is best-effort.
+      } catch (error) {
+        const Sentry = await import("@sentry/nextjs");
+        Sentry.captureException(error);
       }
     }
   }
