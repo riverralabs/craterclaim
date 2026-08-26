@@ -5,8 +5,10 @@ import { useEffect } from "react";
 
 export default function GlobalError({
   error,
+  reset,
 }: {
   error: Error & { digest?: string };
+  reset: () => void;
 }) {
   useEffect(() => {
     Sentry.captureException(error);
@@ -43,8 +45,9 @@ export default function GlobalError({
           <p style={{ color: "#b7bcc6", lineHeight: 1.6 }}>
             The error was recorded. Refresh, or go back to the map.
           </p>
-          <a
-            href="/"
+          <button
+            type="button"
+            onClick={() => reset()}
             style={{
               display: "inline-flex",
               marginTop: 24,
@@ -52,12 +55,14 @@ export default function GlobalError({
               alignItems: "center",
               background: "#f4f6f8",
               color: "#05060e",
-              textDecoration: "none",
+              border: 0,
               padding: "0 20px",
+              cursor: "pointer",
+              font: "inherit",
             }}
           >
-            Back to the Moon
-          </a>
+            Try again
+          </button>
         </main>
       </body>
     </html>
