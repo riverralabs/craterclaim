@@ -17,7 +17,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const nextPath =
     params.next && params.next.startsWith("/") && !params.next.startsWith("//")
       ? params.next
-      : "/claim";
+      : "/?select=1";
 
   return (
     <>

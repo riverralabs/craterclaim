@@ -31,7 +31,7 @@ export default async function ClaimPage() {
                 Explore is public. Sign in with Google, X, or email so this claim stays yours
                 after payment. Digital plots only — not physical land, not ads.
               </p>
-              <LoginForm nextPath="/claim" />
+              <LoginForm nextPath="/?select=1" />
             </div>
           ) : (
             <ClaimForm />

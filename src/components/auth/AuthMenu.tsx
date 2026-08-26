@@ -75,7 +75,7 @@ export function AuthMenu({ compact = false }: { compact?: boolean }) {
 
   if (compact) {
     return (
-      <Link href="/login?next=/claim" className="flex min-h-11 items-center px-2 text-base text-electric-white">
+      <Link href="/login?next=%2F%3Fselect%3D1" className="flex min-h-11 items-center px-2 text-base text-electric-white">
         Sign in
       </Link>
     );
@@ -83,7 +83,7 @@ export function AuthMenu({ compact = false }: { compact?: boolean }) {
 
   return (
     <Link
-      href="/login?next=/claim"
+      href="/login?next=%2F%3Fselect%3D1"
       className={cn(
         buttonVariants({ variant: "outline", size: "lg" }),
         "hidden min-h-11 cursor-pointer border-white/15 sm:inline-flex",

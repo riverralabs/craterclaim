@@ -16,7 +16,6 @@ export function LoginForm({ nextPath, error }: { nextPath: string; error?: strin
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
   const [formError, setFormError] = useState(error ?? null);
-  const [confirmSent, setConfirmSent] = useState(false);
 
   if (!configured) {
     return (
@@ -39,16 +38,6 @@ export function LoginForm({ nextPath, error }: { nextPath: string; error?: strin
       setFormError(result.error);
       return;
     }
-    if (result.needsConfirm) setConfirmSent(true);
-  }
-
-  if (confirmSent) {
-    return (
-      <p className="mt-6 max-w-md leading-relaxed text-lunar-silver">
-        Check <span className="text-electric-white">{email}</span> and open the confirmation
-        link. Then sign in.
-      </p>
-    );
   }
 
   return (

@@ -106,7 +106,7 @@ export function OAuthButtons({ nextPath }: { nextPath: string }) {
             setError(tokenError.message);
             return;
           }
-          router.replace(nextPath.startsWith("/") ? nextPath : "/claim");
+          router.replace(nextPath.startsWith("/") ? nextPath : "/?select=1");
           router.refresh();
         } catch (caught) {
           setError(caught instanceof Error ? caught.message : "Could not finish Google sign-in.");
