@@ -14,11 +14,13 @@ interface MoonState {
   plots: PlotRecord[];
   features: LunarFeature[];
   landingPlotId: string | null;
+  hoverPlotId: string | null;
   landingMode: LandingMode;
   landingCinematic: boolean;
   landingAsOwner: boolean;
   viewResetAt: number;
   setInteracting: (v: boolean) => void;
+  setHoverPlot: (plotId: string | null) => void;
   markUserInteracted: () => void;
   enterExploreMode: () => void;
   enterSelectMode: () => void;
@@ -45,11 +47,16 @@ export const useMoonStore = create<MoonState>()(
       plots: [],
       features: LUNAR_FEATURES,
       landingPlotId: null,
+      hoverPlotId: null,
       landingMode: "idle",
       landingCinematic: false,
       landingAsOwner: false,
       viewResetAt: 0,
       setInteracting: (v) => set({ isInteracting: v }),
+      setHoverPlot: (plotId) => {
+        if (get().hoverPlotId === plotId) return;
+        set({ hoverPlotId: plotId });
+      },
       markUserInteracted: () => set({ hasUserInteracted: true }),
       enterExploreMode: () =>
         set({
@@ -63,6 +70,7 @@ export const useMoonStore = create<MoonState>()(
           hasUserInteracted: true,
           selectionMode: true,
           selection: null,
+          hoverPlotId: null,
         }),
       exitSelectMode: () => set({ selectionMode: false, selection: null }),
       setSelection: (selection) => set({ selection }),
@@ -85,6 +93,7 @@ export const useMoonStore = create<MoonState>()(
           isExploring: true,
           hasUserInteracted: true,
           selectionMode: false,
+          hoverPlotId: null,
           landingPlotId: plotId,
           landingMode: cinematic ? "confirmed" : "flying",
           landingCinematic: cinematic,
@@ -104,6 +113,7 @@ export const useMoonStore = create<MoonState>()(
           viewResetAt: state.viewResetAt + 1,
           selectionMode: false,
           selection: null,
+          hoverPlotId: null,
         })),
     }),
     {

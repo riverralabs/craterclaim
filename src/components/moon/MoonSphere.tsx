@@ -25,6 +25,7 @@ export function MoonSphere({ segments, colorUrl, children }: MoonSphereProps) {
   const selectionMode = useMoonStore((state) => state.selectionMode);
   const landingMode = useMoonStore((state) => state.landingMode);
   const landingPlotId = useMoonStore((state) => state.landingPlotId);
+  const hoverPlotId = useMoonStore((state) => state.hoverPlotId);
   const viewResetAt = useMoonStore((state) => state.viewResetAt);
   const plots = useMoonStore((state) => state.plots);
   const reducedMotion = usePrefersReducedMotion();
@@ -39,7 +40,7 @@ export function MoonSphere({ segments, colorUrl, children }: MoonSphereProps) {
 
   const landingPlot = plots.find((plot) => plot.id === landingPlotId) ?? null;
   const landing = Boolean(landingPlot && landingMode !== "idle");
-  const autoRotate = !selectionMode && landingMode === "idle" && !reducedMotion;
+  const autoRotate = !selectionMode && landingMode === "idle" && !reducedMotion && !hoverPlotId;
 
   useLayoutEffect(() => {
     colorMap.colorSpace = THREE.SRGBColorSpace;

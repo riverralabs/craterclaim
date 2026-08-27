@@ -5,6 +5,13 @@ import { GRID_HEIGHT, GRID_WIDTH, uvToPixel } from "@/lib/moon/coordinates";
 import { rectFromCorners } from "@/lib/moon/selection";
 import { useMoonStore } from "@/lib/store/moon-store";
 import { findOverlappingPlot } from "@/lib/plots/overlap";
+import { plotHoverPointer } from "@/components/moon/PlotHoverCard";
+
+function canShowPlotHover() {
+  const { selectionMode, landingMode } = useMoonStore.getState();
+  if (selectionMode || landingMode === "confirmed" || landingMode === "flying") return false;
+  return window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+}
 
 export function MoonMap2D() {
   const imgRef = useRef<HTMLImageElement>(null);
@@ -15,6 +22,7 @@ export function MoonMap2D() {
   const plots = useMoonStore((state) => state.plots);
   const setSelection = useMoonStore((state) => state.setSelection);
   const startLanding = useMoonStore((state) => state.startLanding);
+  const setHoverPlot = useMoonStore((state) => state.setHoverPlot);
   const markUserInteracted = useMoonStore((state) => state.markUserInteracted);
   const enterExploreMode = useMoonStore((state) => state.enterExploreMode);
 
@@ -82,6 +90,18 @@ export function MoonMap2D() {
                   height: `${(plot.height / GRID_HEIGHT) * 100}%`,
                 }}
                 aria-label={plot.name ?? plot.id}
+                onPointerEnter={(event) => {
+                  if (!canShowPlotHover()) return;
+                  plotHoverPointer.x = event.clientX;
+                  plotHoverPointer.y = event.clientY;
+                  setHoverPlot(plot.id);
+                }}
+                onPointerMove={(event) => {
+                  if (!canShowPlotHover()) return;
+                  plotHoverPointer.x = event.clientX;
+                  plotHoverPointer.y = event.clientY;
+                }}
+                onPointerLeave={() => setHoverPlot(null)}
                 onClick={() => startLanding(plot.id, false)}
               />
             ))}

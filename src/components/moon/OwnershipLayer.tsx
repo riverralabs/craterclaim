@@ -189,6 +189,7 @@ export function OwnershipLayer({ segments }: OwnershipLayerProps) {
   const plots = useMoonStore((state) => state.plots);
   const features = useMoonStore((state) => state.features);
   const landingPlotId = useMoonStore((state) => state.landingPlotId);
+  const hoverPlotId = useMoonStore((state) => state.hoverPlotId);
 
   const { ctx, texture } = useMemo(() => {
     const nextCanvas = document.createElement("canvas");
@@ -206,9 +207,10 @@ export function OwnershipLayer({ segments }: OwnershipLayerProps) {
 
   useEffect(() => {
     if (!ctx) return;
-    paintOverlay(ctx, selection, plots, landingPlotId, features);
+    const highlightId = hoverPlotId ?? landingPlotId;
+    paintOverlay(ctx, selection, plots, highlightId, features);
     texture.needsUpdate = true;
-  }, [ctx, features, landingPlotId, plots, selection, texture]);
+  }, [ctx, features, hoverPlotId, landingPlotId, plots, selection, texture]);
 
   useEffect(() => {
     return () => {

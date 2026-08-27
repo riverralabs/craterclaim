@@ -38,3 +38,27 @@ export function findPlotAtPixel(x: number, y: number, plots: PlotRecord[]) {
     ) ?? null
   );
 }
+
+/** Distance from a pixel to a plot rectangle. 0 if inside. */
+function distanceToPlot(x: number, y: number, plot: PlotRecord) {
+  const dx = x < plot.x ? plot.x - x : x >= plot.x + plot.width ? x - (plot.x + plot.width - 1) : 0;
+  const dy = y < plot.y ? plot.y - y : y >= plot.y + plot.height ? y - (plot.y + plot.height - 1) : 0;
+  return Math.hypot(dx, dy);
+}
+
+/** Prefer the exact cell, then the nearest active plot within `radius` grid pixels. */
+export function findPlotNearPixel(x: number, y: number, plots: PlotRecord[], radius: number) {
+  const exact = findPlotAtPixel(x, y, plots);
+  if (exact) return exact;
+  let best: PlotRecord | null = null;
+  let bestDist = radius;
+  for (const plot of plots) {
+    if (plot.status !== "active") continue;
+    const dist = distanceToPlot(x, y, plot);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = plot;
+    }
+  }
+  return best;
+}

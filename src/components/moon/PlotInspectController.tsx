@@ -4,8 +4,9 @@ import { useEffect, useMemo, useRef } from "react";
 import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { uvToPixel } from "@/lib/moon/coordinates";
-import { findPlotAtPixel } from "@/lib/plots/overlap";
+import { findPlotNearPixel } from "@/lib/plots/overlap";
 import { useMoonStore } from "@/lib/store/moon-store";
+import { plotHoverPointer } from "@/components/moon/PlotHoverCard";
 
 const CLICK_PX = 8;
 
@@ -35,7 +36,8 @@ export function PlotInspectController() {
       const cell = pick(event);
       if (!cell) return null;
       const { plots } = useMoonStore.getState();
-      return findPlotAtPixel(cell.x, cell.y, plots);
+      const radius = Math.min(56, Math.max(10, Math.round(camera.position.length() * 12)));
+      return findPlotNearPixel(cell.x, cell.y, plots, radius);
     };
 
     const canInspect = () => {
@@ -51,9 +53,18 @@ export function PlotInspectController() {
     const onMove = (event: PointerEvent) => {
       if (!canInspect()) {
         element.style.cursor = "";
+        useMoonStore.getState().setHoverPlot(null);
         return;
       }
-      element.style.cursor = plotUnder(event) ? "pointer" : "";
+      const plot = plotUnder(event);
+      plotHoverPointer.x = event.clientX;
+      plotHoverPointer.y = event.clientY;
+      element.style.cursor = plot ? "pointer" : "";
+      if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+        useMoonStore.getState().setHoverPlot(null);
+        return;
+      }
+      useMoonStore.getState().setHoverPlot(plot?.id ?? null);
     };
 
     const onUp = (event: PointerEvent) => {
@@ -73,6 +84,7 @@ export function PlotInspectController() {
     const onLeave = () => {
       down.current = null;
       element.style.cursor = "";
+      useMoonStore.getState().setHoverPlot(null);
     };
 
     element.addEventListener("pointerdown", onDown);
@@ -82,6 +94,7 @@ export function PlotInspectController() {
 
     return () => {
       element.style.cursor = "";
+      useMoonStore.getState().setHoverPlot(null);
       element.removeEventListener("pointerdown", onDown);
       element.removeEventListener("pointermove", onMove);
       element.removeEventListener("pointerup", onUp);

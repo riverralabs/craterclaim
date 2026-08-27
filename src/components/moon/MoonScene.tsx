@@ -10,6 +10,7 @@ import { OwnershipLayer } from "@/components/moon/OwnershipLayer";
 import { PlotGlowLayer } from "@/components/moon/PlotGlowLayer";
 import { PlotLogoLayer } from "@/components/moon/PlotLogoLayer";
 import { PlotInspectController } from "@/components/moon/PlotInspectController";
+import { PlotHoverCard } from "@/components/moon/PlotHoverCard";
 import { SelectionController } from "@/components/moon/SelectionController";
 import { Starfield } from "@/components/moon/Starfield";
 import { MoonMap2D } from "@/components/moon/MoonMap2D";
@@ -111,6 +112,7 @@ export function MoonScene() {
     return (
       <div className="absolute inset-0 bg-space">
         <MoonMap2D />
+        <PlotHoverCard />
       </div>
     );
   }
@@ -147,6 +149,7 @@ export function MoonScene() {
         </Suspense>
       </Canvas>
       <CalloutLayer />
+      <PlotHoverCard />
     </div>
   );
 }

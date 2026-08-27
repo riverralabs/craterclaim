@@ -75,6 +75,7 @@ function HeldGlow({
 export function PlotGlowLayer() {
   const plots = useMoonStore((state) => state.plots);
   const landingPlotId = useMoonStore((state) => state.landingPlotId);
+  const hoverPlotId = useMoonStore((state) => state.hoverPlotId);
   const landingMode = useMoonStore((state) => state.landingMode);
   const landingCinematic = useMoonStore((state) => state.landingCinematic);
   const reducedMotion = usePrefersReducedMotion();
@@ -112,7 +113,7 @@ export function PlotGlowLayer() {
             plot={plot}
             texture={texture}
             reducedMotion={reducedMotion}
-            pulse={acquiring && plot.id === landingPlotId}
+            pulse={(acquiring && plot.id === landingPlotId) || plot.id === hoverPlotId}
           />
         );
       })}
