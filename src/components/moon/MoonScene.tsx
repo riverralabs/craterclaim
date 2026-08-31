@@ -56,6 +56,7 @@ function MoonExperience({
   avoidRight,
   avoidBottom,
   hero,
+  detail,
   onReady,
 }: {
   isMobile: boolean;
@@ -63,27 +64,34 @@ function MoonExperience({
   avoidRight: number;
   avoidBottom: number;
   hero: boolean;
+  detail: boolean;
   onReady: () => void;
 }) {
-  const colorUrl = isMobile ? "/textures/moon/color.webp" : "/textures/moon/color-2k.webp";
   const segments = isMobile ? 40 : 72;
 
   return (
     <>
       <Starfield />
       <MoonLights />
-      <MoonSphere segments={segments} colorUrl={colorUrl} onReady={onReady}>
+      <MoonSphere
+        segments={segments}
+        colorUrl="/textures/moon/color.webp"
+        hiResUrl={!isMobile && detail ? "/textures/moon/color-2k.webp" : undefined}
+        onReady={onReady}
+      >
         <OwnershipLayer segments={segments} />
         <PlotGlowLayer />
-        <PlotLogoLayer />
+        {detail ? <PlotLogoLayer /> : null}
       </MoonSphere>
-      <CalloutTracker
-        visible={showLabels}
-        avoidRight={avoidRight}
-        avoidBottom={avoidBottom}
-        hero={hero}
-        compact={isMobile}
-      />
+      {detail ? (
+        <CalloutTracker
+          visible={showLabels}
+          avoidRight={avoidRight}
+          avoidBottom={avoidBottom}
+          hero={hero}
+          compact={isMobile}
+        />
+      ) : null}
       <CameraController />
       <SelectionController />
       <PlotInspectController />
@@ -96,9 +104,12 @@ export function MoonScene() {
   const isExploring = useMoonStore((state) => state.isExploring);
   const selectionMode = useMoonStore((state) => state.selectionMode);
   const landingMode = useMoonStore((state) => state.landingMode);
-  const [webgl, setWebgl] = useState<boolean | null>(null);
-  const [isMobile, setIsMobile] = useState(true);
+  const [webgl, setWebgl] = useState(() => (typeof window === "undefined" ? true : hasWebGL()));
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window === "undefined" ? true : window.matchMedia("(max-width: 767px)").matches,
+  );
   const [sphereReady, setSphereReady] = useState(false);
+  const [detail, setDetail] = useState(false);
   const markReady = useCallback(() => setSphereReady(true), []);
 
   useEffect(() => {
@@ -119,19 +130,25 @@ export function MoonScene() {
     };
   }, [sphereReady, webgl]);
 
+  useEffect(() => {
+    if (!sphereReady) return;
+    const idle = window.requestIdleCallback?.(() => setDetail(true));
+    if (idle != null) {
+      return () => window.cancelIdleCallback?.(idle);
+    }
+    const timeout = window.setTimeout(() => setDetail(true), 120);
+    return () => window.clearTimeout(timeout);
+  }, [sphereReady]);
+
   const dpr = useMemo<[number, number]>(() => (isMobile ? [1, 1.15] : [1, 1.35]), [isMobile]);
 
-  if (webgl === false) {
+  if (!webgl) {
     return (
       <div className="absolute inset-0 bg-space">
         <MoonMap2D />
         <PlotHoverCard />
       </div>
     );
-  }
-
-  if (webgl === null) {
-    return null;
   }
 
   return (
@@ -159,6 +176,7 @@ export function MoonScene() {
             avoidBottom={isMobile ? (isExploring ? 132 : 168) : isExploring ? 84 : 28}
             hero={!isExploring && !isMobile}
             onReady={markReady}
+            detail={detail}
           />
         </Suspense>
       </Canvas>

@@ -6,8 +6,8 @@ export function MoonStill() {
         <img
           src="/textures/moon/color.webp"
           alt=""
-          width={2048}
-          height={1024}
+          width={1024}
+          height={512}
           fetchPriority="high"
           decoding="async"
         />

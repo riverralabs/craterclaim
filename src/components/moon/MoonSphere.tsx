@@ -14,11 +14,12 @@ export const NEAR_SIDE_YAW = -Math.PI / 2;
 type MoonSphereProps = {
   segments: number;
   colorUrl: string;
+  hiResUrl?: string;
   onReady?: () => void;
   children?: React.ReactNode;
 };
 
-export function MoonSphere({ segments, colorUrl, onReady, children }: MoonSphereProps) {
+export function MoonSphere({ segments, colorUrl, hiResUrl, onReady, children }: MoonSphereProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const oriented = useRef(false);
   const landingStarted = useRef(false);
@@ -31,6 +32,8 @@ export function MoonSphere({ segments, colorUrl, onReady, children }: MoonSphere
   const plots = useMoonStore((state) => state.plots);
   const reducedMotion = usePrefersReducedMotion();
   const colorMap = useTexture(colorUrl);
+  const [hiMap, setHiMap] = useState<THREE.Texture | null>(null);
+  const map = hiMap ?? colorMap;
   const { camera } = useThree();
   const [lod, setLod] = useState(segments);
   const materialRef = useRef<THREE.MeshLambertMaterial>(null);
@@ -53,6 +56,36 @@ export function MoonSphere({ segments, colorUrl, onReady, children }: MoonSphere
   useLayoutEffect(() => {
     onReady?.();
   }, [colorMap, onReady]);
+
+  useEffect(() => {
+    if (!hiResUrl) {
+      setHiMap((previous) => {
+        previous?.dispose();
+        return null;
+      });
+      return;
+    }
+    let cancelled = false;
+    const loader = new THREE.TextureLoader();
+    loader.load(hiResUrl, (texture) => {
+      if (cancelled) {
+        texture.dispose();
+        return;
+      }
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = 4;
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.minFilter = THREE.LinearMipmapLinearFilter;
+      texture.needsUpdate = true;
+      setHiMap((previous) => {
+        previous?.dispose();
+        return texture;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [hiResUrl]);
 
   useLayoutEffect(() => {
     const material = materialRef.current;
@@ -137,10 +170,10 @@ export function MoonSphere({ segments, colorUrl, onReady, children }: MoonSphere
       <sphereGeometry args={[1, lod, lod]} />
       <meshLambertMaterial
         ref={materialRef}
-        map={colorMap}
+        map={map}
         color="#f0ece6"
         emissive="#ffffff"
-        emissiveMap={colorMap}
+        emissiveMap={map}
         emissiveIntensity={0.18}
       />
       {children}
