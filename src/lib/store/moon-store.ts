@@ -91,7 +91,10 @@ export const useMoonStore = create<MoonState>()(
       },
       hydrateFeatures: (features) => set({ features }),
       rememberPlot: (plot) => {
-        const merged = mergePlots([plot], mergePlots(get().plots, readLocalPlots()));
+        const merged = mergePlots(
+          [migratePlotsToCurrentGrid([plot])[0]],
+          mergePlots(get().plots, readLocalPlots()),
+        );
         writeLocalPlots(merged);
         set({ plots: merged, selection: null, selectionMode: false });
       },

@@ -3,45 +3,86 @@
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 
-function paintNebula(canvas: HTMLCanvasElement) {
+function seeded(n: number) {
+  const x = Math.sin(n * 127.1) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+function paintMilkyWay(canvas: HTMLCanvasElement) {
   const width = canvas.width;
   const height = canvas.height;
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
-  ctx.fillStyle = "#05060e";
+  ctx.fillStyle = "#03040c";
   ctx.fillRect(0, 0, width, height);
 
-  const nebulae = [
-    { x: width * 0.2, y: height * 0.4, r: width * 0.36, color: "rgba(78, 58, 140, 0.32)" },
-    { x: width * 0.76, y: height * 0.34, r: width * 0.4, color: "rgba(32, 64, 132, 0.28)" },
-    { x: width * 0.54, y: height * 0.6, r: width * 0.24, color: "rgba(150, 104, 58, 0.1)" },
-  ];
-  for (const nebula of nebulae) {
-    const glow = ctx.createRadialGradient(nebula.x, nebula.y, 0, nebula.x, nebula.y, nebula.r);
-    glow.addColorStop(0, nebula.color);
-    glow.addColorStop(1, "rgba(5, 6, 14, 0)");
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, width, height);
-  }
+  const field = ctx.createRadialGradient(width * 0.5, height * 0.5, 0, width * 0.5, height * 0.5, width * 0.72);
+  field.addColorStop(0, "rgba(18, 22, 48, 0.35)");
+  field.addColorStop(1, "rgba(3, 4, 12, 0)");
+  ctx.fillStyle = field;
+  ctx.fillRect(0, 0, width, height);
 
   ctx.save();
-  ctx.globalAlpha = 0.16;
-  const band = ctx.createLinearGradient(0, height * 0.4, 0, height * 0.62);
-  band.addColorStop(0, "rgba(5, 6, 14, 0)");
-  band.addColorStop(0.5, "rgba(176, 192, 232, 0.7)");
-  band.addColorStop(1, "rgba(5, 6, 14, 0)");
-  ctx.fillStyle = band;
-  ctx.fillRect(0, height * 0.36, width, height * 0.3);
+  ctx.translate(width * 0.5, height * 0.52);
+  ctx.rotate(-0.18);
+
+  const disc = ctx.createLinearGradient(0, -height * 0.22, 0, height * 0.22);
+  disc.addColorStop(0, "rgba(3, 4, 12, 0)");
+  disc.addColorStop(0.28, "rgba(72, 88, 168, 0.16)");
+  disc.addColorStop(0.5, "rgba(196, 206, 236, 0.42)");
+  disc.addColorStop(0.72, "rgba(88, 64, 148, 0.18)");
+  disc.addColorStop(1, "rgba(3, 4, 12, 0)");
+  ctx.fillStyle = disc;
+  ctx.fillRect(-width, -height * 0.22, width * 2, height * 0.44);
+
+  const core = ctx.createRadialGradient(width * 0.04, 0, 0, width * 0.04, 0, width * 0.38);
+  core.addColorStop(0, "rgba(255, 214, 168, 0.55)");
+  core.addColorStop(0.18, "rgba(232, 168, 128, 0.28)");
+  core.addColorStop(0.45, "rgba(120, 92, 180, 0.14)");
+  core.addColorStop(1, "rgba(3, 4, 12, 0)");
+  ctx.fillStyle = core;
+  ctx.fillRect(-width, -height * 0.28, width * 2, height * 0.56);
+
+  ctx.globalCompositeOperation = "multiply";
+  for (let i = 0; i < 7; i += 1) {
+    const lane = ctx.createRadialGradient(
+      (seeded(i + 2) - 0.5) * width * 0.9,
+      (seeded(i + 9) - 0.5) * height * 0.05,
+      0,
+      (seeded(i + 2) - 0.5) * width * 0.9,
+      (seeded(i + 9) - 0.5) * height * 0.05,
+      width * (0.12 + seeded(i + 4) * 0.2),
+    );
+    lane.addColorStop(0, "rgba(8, 8, 14, 0.82)");
+    lane.addColorStop(1, "rgba(8, 8, 14, 0)");
+    ctx.fillStyle = lane;
+    ctx.fillRect(-width, -height * 0.2, width * 2, height * 0.4);
+  }
+  ctx.globalCompositeOperation = "source-over";
   ctx.restore();
+
+  for (let i = 0; i < 4200; i += 1) {
+    const u = seeded(i * 3.1);
+    const along = seeded(i * 7.7);
+    const x = u * width;
+    const plane = height * (0.52 - 0.08 * Math.sin(u * Math.PI * 2));
+    const y = plane + (along - 0.5) * height * (0.04 + seeded(i * 11) * 0.1);
+    const warm = seeded(i * 13) > 0.72;
+    ctx.fillStyle = warm ? "rgba(255, 226, 196, 0.55)" : "rgba(226, 234, 255, 0.5)";
+    const r = seeded(i * 17) > 0.92 ? 1.2 : 0.55;
+    ctx.fillRect(x, y, r, r);
+  }
 }
 
-function scatterStars(count: number, radiusMin: number, radiusMax: number) {
+function scatterStars(count: number, radiusMin: number, radiusMax: number, plane = false) {
   const positions = new Float32Array(count * 3);
   for (let index = 0; index < count; index += 1) {
     const radius = radiusMin + Math.random() * (radiusMax - radiusMin);
     const theta = Math.random() * Math.PI * 2;
-    const phi = Math.acos(2 * Math.random() - 1);
+    const phi = plane
+      ? Math.PI / 2 + (Math.random() - 0.5) * (0.35 + Math.random() * 0.5)
+      : Math.acos(2 * Math.random() - 1);
     const sinPhi = Math.sin(phi);
     positions[index * 3] = radius * sinPhi * Math.cos(theta);
     positions[index * 3 + 1] = radius * sinPhi * Math.sin(theta);
@@ -51,11 +92,11 @@ function scatterStars(count: number, radiusMin: number, radiusMax: number) {
 }
 
 export function Starfield() {
-  const nebula = useMemo(() => {
+  const milkyWay = useMemo(() => {
     const canvas = document.createElement("canvas");
-    canvas.width = 1024;
-    canvas.height = 512;
-    paintNebula(canvas);
+    canvas.width = 1536;
+    canvas.height = 768;
+    paintMilkyWay(canvas);
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.generateMipmaps = false;
@@ -64,26 +105,41 @@ export function Starfield() {
     return texture;
   }, []);
 
-  const dimStars = useMemo(() => scatterStars(1600, 18, 38), []);
-  const brightStars = useMemo(() => scatterStars(220, 16, 34), []);
+  const dimStars = useMemo(() => scatterStars(2400, 18, 38, true), []);
+  const haloStars = useMemo(() => scatterStars(500, 18, 38, false), []);
+  const brightStars = useMemo(() => scatterStars(280, 16, 34, true), []);
 
   useEffect(() => {
     return () => {
-      nebula.dispose();
+      milkyWay.dispose();
     };
-  }, [nebula]);
+  }, [milkyWay]);
 
   return (
     <group>
       <mesh frustumCulled={false}>
-        <sphereGeometry args={[46, 32, 24]} />
+        <sphereGeometry args={[46, 48, 32]} />
         <meshBasicMaterial
-          map={nebula}
+          map={milkyWay}
           side={THREE.BackSide}
           depthWrite={false}
           toneMapped={false}
         />
       </mesh>
+      <points frustumCulled={false}>
+        <bufferGeometry>
+          <bufferAttribute attach="attributes-position" args={[haloStars, 3]} />
+        </bufferGeometry>
+        <pointsMaterial
+          color="#9aa8c8"
+          size={0.9}
+          sizeAttenuation={false}
+          transparent
+          opacity={0.45}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </points>
       <points frustumCulled={false}>
         <bufferGeometry>
           <bufferAttribute attach="attributes-position" args={[dimStars, 3]} />
@@ -93,7 +149,7 @@ export function Starfield() {
           size={1.15}
           sizeAttenuation={false}
           transparent
-          opacity={0.72}
+          opacity={0.78}
           depthWrite={false}
           toneMapped={false}
         />
@@ -103,8 +159,8 @@ export function Starfield() {
           <bufferAttribute attach="attributes-position" args={[brightStars, 3]} />
         </bufferGeometry>
         <pointsMaterial
-          color="#f4f7ff"
-          size={2.05}
+          color="#fff4e6"
+          size={2.15}
           sizeAttenuation={false}
           transparent
           opacity={0.95}

@@ -1,12 +1,15 @@
 import type { PixelCoord, UV } from "@/types";
 
 /**
- * Equirectangular lunar grid.
- * 2:1 aspect is the natural map projection. 2000 × 1000 = exactly 2,000,000 pixels.
- * Pixels do not represent equal physical area — polar cells cover less ground.
+ * Equirectangular lunar grid. 2:1 matches the map projection.
+ * Production stays 2000 × 1000 (2,000,000). Local preview uses ~1,000,000
+ * so landings read larger on the idle globe before we commit a migration.
  */
-export const GRID_WIDTH = 2000;
-export const GRID_HEIGHT = 1000;
+const LOCAL_MILLION =
+  process.env.NODE_ENV !== "production" && process.env.NEXT_PUBLIC_MOON_PIXELS !== "2000000";
+
+export const GRID_WIDTH = LOCAL_MILLION ? 1420 : 2000;
+export const GRID_HEIGHT = LOCAL_MILLION ? 710 : 1000;
 
 const DEG = Math.PI / 180;
 

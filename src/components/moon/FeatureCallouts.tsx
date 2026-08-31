@@ -5,12 +5,15 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { latLngToVector3 } from "@/lib/moon/coordinates";
 import { useMoonStore } from "@/lib/store/moon-store";
-import type { LunarFeature } from "@/types";
+
+const FADE_NEAR = 2.2;
+const FADE_FAR = 3.1;
 
 export type CalloutPin = {
   id: string;
   title: string;
   subtitle: string;
+  tone: "gold" | "silver";
   x: number;
   y: number;
   exitX: number;
@@ -21,12 +24,6 @@ export type CalloutPin = {
   labelY: number;
   side: "left" | "right";
 };
-
-function captionFor(feature: LunarFeature) {
-  if (feature.type === "pole") return "Rare opportunity";
-  if (feature.type === "crater") return "Landmark";
-  return "Premium zone";
-}
 
 function elbowPath(pin: CalloutPin) {
   return `M ${pin.x} ${pin.y} L ${pin.exitX} ${pin.exitY} L ${pin.jointX} ${pin.jointY} L ${pin.labelX} ${pin.labelY}`;
@@ -40,6 +37,19 @@ function escapeHtml(value: string) {
     .replaceAll('"', "&quot;");
 }
 
+function strokeFor(pin: { tone: "gold" | "silver" }) {
+  return pin.tone === "silver" ? "#9ad8ff" : "#e0b84f";
+}
+
+function paintPing(pin: CalloutPin, compact: boolean) {
+  const color = strokeFor(pin);
+  const r = compact ? 4.2 : 5.5;
+  return `<g filter="url(#callout-glow)">
+      <circle cx="${pin.x}" cy="${pin.y}" r="${r}" fill="none" stroke="${color}" stroke-width="1.15" />
+      <circle cx="${pin.x}" cy="${pin.y}" r="1.7" fill="${color}" />
+    </g>`;
+}
+
 function paintCallouts(pins: CalloutPin[], compact: boolean) {
   const root = document.getElementById("moon-callouts");
   if (!root) return;
@@ -49,17 +59,16 @@ function paintCallouts(pins: CalloutPin[], compact: boolean) {
   const subSize = compact ? 9 : 8;
   const groups = pins
     .map((pin) => {
+      const color = strokeFor(pin);
       const bracket =
         pin.side === "right"
           ? `M ${pin.labelX} ${pin.labelY - tick} L ${pin.labelX} ${pin.labelY + tick} L ${pin.labelX + 14} ${pin.labelY + tick}`
           : `M ${pin.labelX} ${pin.labelY - tick} L ${pin.labelX} ${pin.labelY + tick} L ${pin.labelX - 14} ${pin.labelY + tick}`;
-      return `<g filter="url(#callout-glow)">
-          <circle cx="${pin.x}" cy="${pin.y}" r="${compact ? 4.2 : 5.5}" fill="none" stroke="#e0b84f" stroke-width="1.15" />
-          <circle cx="${pin.x}" cy="${pin.y}" r="1.7" fill="#e0b84f" />
-          <circle cx="${pin.exitX}" cy="${pin.exitY}" r="2.2" fill="#e0b84f" />
-          <circle cx="${pin.jointX}" cy="${pin.jointY}" r="2.2" fill="#e0b84f" />
-          <path d="${elbowPath(pin)}" fill="none" stroke="#e0b84f" stroke-width="1.15" />
-          <path d="${bracket}" fill="none" stroke="#e0b84f" stroke-width="1.15" />
+      return `${paintPing(pin, compact)}<g filter="url(#callout-glow)">
+          <circle cx="${pin.exitX}" cy="${pin.exitY}" r="2.2" fill="${color}" />
+          <circle cx="${pin.jointX}" cy="${pin.jointY}" r="2.2" fill="${color}" />
+          <path d="${elbowPath(pin)}" fill="none" stroke="${color}" stroke-width="1.15" />
+          <path d="${bracket}" fill="none" stroke="${color}" stroke-width="1.15" />
         </g>`;
     })
     .join("");
@@ -67,9 +76,10 @@ function paintCallouts(pins: CalloutPin[], compact: boolean) {
     .map((pin) => {
       const transform =
         pin.side === "left" ? "translate(calc(-100% - 8px), -50%)" : "translate(10px, -50%)";
+      const color = strokeFor(pin);
       return `<div data-callout="true" style="position:absolute;left:${pin.labelX}px;top:${pin.labelY}px;transform:${transform};white-space:nowrap">
           <p style="margin:0;font-family:Syne,ui-sans-serif,sans-serif;font-size:${titleSize}px;font-weight:700;letter-spacing:${compact ? "0.08em" : "0.18em"};color:#f4f6f8;text-transform:uppercase;line-height:1.2">${escapeHtml(pin.title)}</p>
-          <p style="margin:3px 0 0;font-family:'Geist Mono',ui-monospace,monospace;font-size:${subSize}px;letter-spacing:${compact ? "0.1em" : "0.24em"};color:#e0b84f;text-transform:uppercase;line-height:1.15">${escapeHtml(pin.subtitle)}</p>
+          <p style="margin:3px 0 0;font-family:'Geist Mono',ui-monospace,monospace;font-size:${subSize}px;letter-spacing:${compact ? "0.1em" : "0.24em"};color:${color};text-transform:uppercase;line-height:1.15">${escapeHtml(pin.subtitle)}</p>
         </div>`;
     })
     .join("");
@@ -232,20 +242,28 @@ export function CalloutTracker({
   const rim = useRef(new THREE.Vector3());
   const last = useRef<CalloutPin[]>([]);
   const lastPaintAt = useRef(0);
-  const features = useMoonStore((state) => state.features);
-  const locals = useMemo(
-    () =>
-      features
-        .filter((feature) => feature.isPremium)
-        .map((feature) => ({
-          feature,
-          local: latLngToVector3(feature.centerLat, feature.centerLng, 1.002),
-        })),
-    [features],
-  );
+  const lastOpacity = useRef(1);
+  const hoverPlotId = useMoonStore((state) => state.hoverPlotId);
+  const plots = useMoonStore((state) => state.plots);
+  const hoverLocal = useMemo(() => {
+    const plot = plots.find((item) => item.id === hoverPlotId && item.status === "active");
+    if (!plot) return null;
+    return {
+      plot,
+      local: latLngToVector3(plot.centerLatitude, plot.centerLongitude, 1.007),
+    };
+  }, [hoverPlotId, plots]);
 
   useFrame(({ clock }) => {
-    if (!visible) {
+    const root = document.getElementById("moon-callouts");
+    const distance = camera.position.length();
+    const fade = THREE.MathUtils.clamp((distance - FADE_NEAR) / (FADE_FAR - FADE_NEAR), 0, 1);
+    if (root && Math.abs(fade - lastOpacity.current) > 0.02) {
+      root.style.opacity = String(fade);
+      lastOpacity.current = fade;
+    }
+
+    if (!visible || fade < 0.05 || !hoverLocal) {
       if (last.current.length) {
         last.current = [];
         lastPaintAt.current = 0;
@@ -255,7 +273,7 @@ export function CalloutTracker({
     }
 
     const elapsed = clock.getElapsedTime();
-    if (elapsed - lastPaintAt.current < 0.08) return;
+    if (elapsed - lastPaintAt.current < 0.04) return;
     lastPaintAt.current = elapsed;
 
     const moon = scene.getObjectByName("moonSurface");
@@ -281,35 +299,37 @@ export function CalloutTracker({
     );
 
     const facing: CalloutPin[] = [];
-    for (const entry of locals) {
-      world.current.set(entry.local.x, entry.local.y, entry.local.z).applyMatrix4(moon.matrixWorld);
+    if (hoverLocal) {
+      world.current
+        .set(hoverLocal.local.x, hoverLocal.local.y, hoverLocal.local.z)
+        .applyMatrix4(moon.matrixWorld);
       normal.current.copy(world.current).sub(moonPos.current).normalize();
       toCam.current.copy(camera.position).sub(world.current).normalize();
-      if (normal.current.dot(toCam.current) < -0.22) continue;
-      ndc.current.copy(world.current).project(camera);
-      if (ndc.current.z > 1) continue;
-      const x = (ndc.current.x * 0.5 + 0.5) * width;
-      const y = (-ndc.current.y * 0.5 + 0.5) * height;
-      if (Math.hypot(x - cx, y - cy) > moonR + 8) continue;
-      facing.push({
-        id: entry.feature.id,
-        title: entry.feature.name,
-        subtitle: captionFor(entry.feature),
-        x,
-        y,
-        exitX: x,
-        exitY: y,
-        jointX: x,
-        jointY: y,
-        labelX: x,
-        labelY: y,
-        side: "right",
-      });
-    }
-
-    if (compact && facing.length > 4) {
-      facing.sort((a, b) => Math.hypot(a.x - cx, a.y - cy) - Math.hypot(b.x - cx, b.y - cy));
-      facing.splice(4);
+      if (normal.current.dot(toCam.current) >= -0.22) {
+        ndc.current.copy(world.current).project(camera);
+        if (ndc.current.z <= 1) {
+          const x = (ndc.current.x * 0.5 + 0.5) * width;
+          const y = (-ndc.current.y * 0.5 + 0.5) * height;
+          if (Math.hypot(x - cx, y - cy) <= moonR + 8) {
+            const premium = hoverLocal.plot.zone === "premium";
+            facing.push({
+              id: hoverLocal.plot.id,
+              title: hoverLocal.plot.name ?? hoverLocal.plot.id,
+              subtitle: premium ? "Premium landing" : "Standard landing",
+              tone: premium ? "gold" : "silver",
+              x,
+              y,
+              exitX: x,
+              exitY: y,
+              jointX: x,
+              jointY: y,
+              labelX: x,
+              labelY: y,
+              side: "right",
+            });
+          }
+        }
+      }
     }
 
     layoutPins(facing, cx, cy, moonR, width, height, avoidRight, avoidBottom, hero, compact);
@@ -319,13 +339,11 @@ export function CalloutTracker({
         Math.hypot(pin.labelX - pin.x, pin.labelY - pin.y) > (compact ? 20 : 28),
     );
 
-    const root = document.getElementById("moon-callouts");
     if (root) {
       root.dataset.count = String(placed.length);
     }
 
     if (samePins(last.current, placed)) {
-      const root = document.getElementById("moon-callouts");
       if (root && root.dataset.count === String(placed.length) && root.querySelector("[data-callout], circle")) {
         return;
       }
@@ -341,7 +359,7 @@ export function CalloutLayer() {
   return (
     <div
       id="moon-callouts"
-      className="pointer-events-none absolute inset-0 z-[12] overflow-hidden"
+      className="pointer-events-none absolute inset-0 z-[12] overflow-hidden transition-opacity duration-150"
     />
   );
 }
