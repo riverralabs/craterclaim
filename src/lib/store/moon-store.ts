@@ -42,7 +42,7 @@ export const useMoonStore = create<MoonState>()(
     (set, get) => ({
       isInteracting: false,
       hasUserInteracted: false,
-      isExploring: false,
+      isExploring: true,
       selectionMode: false,
       selection: null,
       plots: [],

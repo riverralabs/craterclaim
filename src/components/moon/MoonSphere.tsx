@@ -8,7 +8,7 @@ import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { latLngToVector3 } from "@/lib/moon/coordinates";
 import { useMoonStore } from "@/lib/store/moon-store";
 
-const IDLE_RAD_PER_SEC = 0.024;
+const IDLE_RAD_PER_SEC = 0.015;
 export const NEAR_SIDE_YAW = -Math.PI / 2;
 
 type MoonSphereProps = {
@@ -141,7 +141,7 @@ export function MoonSphere({ segments, colorUrl, onReady, children }: MoonSphere
         color="#f0ece6"
         emissive="#ffffff"
         emissiveMap={colorMap}
-        emissiveIntensity={0.28}
+        emissiveIntensity={0.18}
       />
       {children}
     </mesh>

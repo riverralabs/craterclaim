@@ -41,11 +41,11 @@ function MoonLights() {
 
   return (
     <>
-      <ambientLight intensity={0.34} color="#9aa3ae" />
-      <hemisphereLight args={["#dce4f0", "#353028", 0.42]} />
-      <directionalLight ref={key} intensity={0.62} color="#fff1d8" />
-      <directionalLight ref={fill} intensity={0.36} color="#c5ccd6" />
-      <directionalLight ref={wrap} intensity={0.3} color="#e8d4b4" />
+      <ambientLight intensity={0.28} color="#8a909a" />
+      <hemisphereLight args={["#d4dae4", "#353028", 0.38]} />
+      <directionalLight ref={key} intensity={0.55} color="#fff1d8" />
+      <directionalLight ref={fill} intensity={0.32} color="#c5ccd6" />
+      <directionalLight ref={wrap} intensity={0.26} color="#e8d4b4" />
     </>
   );
 }
@@ -72,18 +72,6 @@ function MoonExperience({
     <>
       <Starfield />
       <MoonLights />
-      <mesh name="moonGlow" scale={1.055} frustumCulled={false}>
-        <sphereGeometry args={[1, 32, 32]} />
-        <meshBasicMaterial
-          color="#f3e6c8"
-          transparent
-          opacity={0.13}
-          side={THREE.BackSide}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-          toneMapped={false}
-        />
-      </mesh>
       <MoonSphere segments={segments} colorUrl={colorUrl} onReady={onReady}>
         <OwnershipLayer segments={segments} />
         <PlotGlowLayer />
@@ -166,7 +154,7 @@ export function MoonScene() {
         <Suspense fallback={null}>
           <MoonExperience
             isMobile={isMobile}
-            showLabels={false}
+            showLabels={!selectionMode && landingMode === "idle"}
             avoidRight={isExploring || isMobile ? 28 : 348}
             avoidBottom={isMobile ? (isExploring ? 132 : 168) : isExploring ? 84 : 28}
             hero={!isExploring && !isMobile}
