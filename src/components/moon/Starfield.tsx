@@ -29,9 +29,9 @@ function paintMilkyWay(canvas: HTMLCanvasElement) {
 
   const disc = ctx.createLinearGradient(0, -height * 0.22, 0, height * 0.22);
   disc.addColorStop(0, "rgba(3, 4, 12, 0)");
-  disc.addColorStop(0.28, "rgba(72, 88, 168, 0.16)");
-  disc.addColorStop(0.5, "rgba(196, 206, 236, 0.42)");
-  disc.addColorStop(0.72, "rgba(88, 64, 148, 0.18)");
+  disc.addColorStop(0.28, "rgba(92, 108, 188, 0.28)");
+  disc.addColorStop(0.5, "rgba(214, 222, 248, 0.62)");
+  disc.addColorStop(0.72, "rgba(118, 82, 168, 0.28)");
   disc.addColorStop(1, "rgba(3, 4, 12, 0)");
   ctx.fillStyle = disc;
   ctx.fillRect(-width, -height * 0.22, width * 2, height * 0.44);
@@ -116,7 +116,7 @@ export function Starfield() {
   }, [milkyWay]);
 
   return (
-    <group>
+    <group rotation={[0.42, 0.95, 0.12]}>
       <mesh frustumCulled={false}>
         <sphereGeometry args={[46, 48, 32]} />
         <meshBasicMaterial
