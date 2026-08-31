@@ -1,3 +1,4 @@
+import { LandingViewed } from "@/components/analytics/LandingViewed";
 import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
 import { PlotCard } from "@/components/plot/PlotCard";
@@ -9,6 +10,7 @@ import type { PlotRecord } from "@/types";
 export function PlotLanding({ plot }: { plot: PlotRecord }) {
   return (
     <>
+      <LandingViewed plotId={plot.id} />
       <Navbar />
       <main className="flex min-h-dvh flex-col bg-space pt-24">
         <div className="mx-auto w-full max-w-[22.5rem] flex-1 px-4 pb-16 sm:px-0">

@@ -1,26 +1,37 @@
 "use client";
 
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { HudFrame } from "@/components/ui/hud-frame";
 import { formatUsd, PIXEL_PRICE, TOTAL_PIXELS } from "@/lib/moon/pricing";
 import { useClaimSelect } from "@/hooks/useClaimSelect";
 import { useMoonStore } from "@/lib/store/moon-store";
 import { cn } from "@/lib/utils";
+import type { PlotRecord } from "@/types";
 
 function formatCount(value: number) {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
-export function HomeHud() {
+export function HomeHud({
+  featured,
+  initialPlots,
+}: {
+  featured: PlotRecord | null;
+  initialPlots: PlotRecord[];
+}) {
   const isExploring = useMoonStore((state) => state.isExploring);
   const selectionMode = useMoonStore((state) => state.selectionMode);
   const landingMode = useMoonStore((state) => state.landingMode);
-  const plots = useMoonStore((state) => state.plots);
+  const storePlots = useMoonStore((state) => state.plots);
+  const plots = storePlots.length > 0 ? storePlots : initialPlots;
   const enterExploreMode = useMoonStore((state) => state.enterExploreMode);
   const enterSelectMode = useMoonStore((state) => state.enterSelectMode);
   const exitSelectMode = useMoonStore((state) => state.exitSelectMode);
   const resetView = useMoonStore((state) => state.resetView);
+  const startLanding = useMoonStore((state) => state.startLanding);
   const enterSelect = useClaimSelect();
+  const first = featured ?? plots.find((plot) => plot.status === "active") ?? null;
 
   const landings = plots.filter((plot) => plot.status === "active");
   const claimedPixels = landings.reduce((sum, plot) => sum + plot.pixelCount, 0);
@@ -110,6 +121,14 @@ export function HomeHud() {
             Claim
           </Button>
         </div>
+        {first ? (
+          <Link
+            href={`/plot/${first.id}`}
+            className="pointer-events-auto mt-3 inline-flex min-h-11 items-center text-xs tracking-[0.12em] text-gold uppercase sm:hidden"
+          >
+            First landing · {first.name ?? first.id}
+          </Link>
+        ) : null}
       </div>
 
       <aside className="pointer-events-auto absolute top-24 right-4 hidden w-[320px] md:block">
@@ -131,6 +150,37 @@ export function HomeHud() {
             <HudStat label="Available" value={formatCount(available)} />
             <HudStat label="Landings" value={formatCount(landings.length)} />
           </div>
+
+          {first ? (
+            <div className="mt-4 space-y-2 border-t border-white/10 pt-4">
+              <p className="font-mono text-[10px] tracking-[0.28em] text-gold uppercase">First landing</p>
+              <p className="font-heading text-sm font-semibold tracking-[0.08em] text-electric-white">
+                {first.name ?? first.id}
+              </p>
+              <p className="font-mono text-[10px] tracking-[0.16em] text-lunar-silver uppercase">
+                {first.id} · {first.lunarFeature}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  asChild
+                  size="sm"
+                  variant="outline"
+                  className="min-h-11 flex-1 cursor-pointer border-white/15 text-[10px] tracking-[0.16em] uppercase"
+                >
+                  <Link href={`/plot/${first.id}`}>View deed</Link>
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="min-h-11 flex-1 cursor-pointer border-white/15 text-[10px] tracking-[0.16em] uppercase"
+                  onClick={() => startLanding(first.id, false)}
+                >
+                  See on Moon
+                </Button>
+              </div>
+            </div>
+          ) : null}
 
           <div className="mt-4 space-y-2 border-t border-white/10 pt-4">
             <p className="font-mono text-[10px] tracking-[0.28em] text-lunar-silver uppercase">Legend</p>

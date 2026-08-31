@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { withSignedIn } from "@/lib/auth/redirect";
 
 export type AuthActionResult = { ok: true } | { ok: false; error: string };
 
@@ -68,7 +69,7 @@ export async function signInWithEmail(
 
   const signedIn = await signInSession(trimmed, password);
   if (!signedIn.ok) return signedIn;
-  redirect(safeNext(nextPath));
+  redirect(withSignedIn(safeNext(nextPath), "email"));
 }
 
 export async function signUpWithEmail(
@@ -100,7 +101,7 @@ export async function signUpWithEmail(
 
   const signedIn = await signInSession(trimmed, password);
   if (!signedIn.ok) return signedIn;
-  redirect(safeNext(nextPath));
+  redirect(withSignedIn(safeNext(nextPath), "signup"));
 }
 
 export async function signOut() {

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { FacingMark } from "@/components/moon/FacingMark";
 import { plotSurfaceFrame } from "@/lib/moon/surface-frame";
 import { useMoonStore } from "@/lib/store/moon-store";
 import type { PlotRecord } from "@/types";
@@ -107,14 +108,16 @@ export function PlotGlowLayer() {
       {held.map((plot) => {
         const texture = plot.zone === "premium" ? textures.premium : textures.standard;
         if (!texture) return null;
+        const frame = plotSurfaceFrame(plot, 1.005, 1.6);
         return (
-          <HeldGlow
-            key={plot.id}
-            plot={plot}
-            texture={texture}
-            reducedMotion={reducedMotion}
-            pulse={(acquiring && plot.id === landingPlotId) || plot.id === hoverPlotId}
-          />
+          <FacingMark key={plot.id} local={frame.position}>
+            <HeldGlow
+              plot={plot}
+              texture={texture}
+              reducedMotion={reducedMotion}
+              pulse={(acquiring && plot.id === landingPlotId) || plot.id === hoverPlotId}
+            />
+          </FacingMark>
         );
       })}
     </group>

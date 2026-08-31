@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { withSignedIn } from "@/lib/auth/redirect";
 import type { EmailOtpType } from "@supabase/supabase-js";
 
 function safeNext(path: string | null) {
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
       login.searchParams.set("error", error.message);
       return NextResponse.redirect(login);
     }
-    return NextResponse.redirect(new URL(next, origin));
+    return NextResponse.redirect(new URL(withSignedIn(next, "oauth"), origin));
   }
 
   if (tokenHash && type) {
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
       login.searchParams.set("error", error.message);
       return NextResponse.redirect(login);
     }
-    return NextResponse.redirect(new URL(next, origin));
+    return NextResponse.redirect(new URL(withSignedIn(next, "email"), origin));
   }
 
   login.searchParams.set("error", "This sign-in link is missing or expired.");

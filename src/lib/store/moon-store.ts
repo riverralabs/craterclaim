@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { trackEvent } from "@/lib/analytics";
 import { mergePlots, readLocalPlots, writeLocalPlots } from "@/lib/plots/local";
 import { migratePlotsToCurrentGrid } from "@/lib/moon/grid";
 import { LUNAR_FEATURES } from "@/lib/moon/regions";
@@ -58,20 +59,26 @@ export const useMoonStore = create<MoonState>()(
         set({ hoverPlotId: plotId });
       },
       markUserInteracted: () => set({ hasUserInteracted: true }),
-      enterExploreMode: () =>
+      enterExploreMode: () => {
+        const alreadyExploring = get().isExploring && !get().selectionMode;
         set({
           isExploring: true,
           hasUserInteracted: true,
           selectionMode: false,
-        }),
-      enterSelectMode: () =>
+        });
+        if (!alreadyExploring) trackEvent("explore");
+      },
+      enterSelectMode: () => {
+        const alreadySelecting = get().selectionMode;
         set({
           isExploring: true,
           hasUserInteracted: true,
           selectionMode: true,
           selection: null,
           hoverPlotId: null,
-        }),
+        });
+        if (!alreadySelecting) trackEvent("select");
+      },
       exitSelectMode: () => set({ selectionMode: false, selection: null }),
       setSelection: (selection) => set({ selection }),
       hydratePlots: (plots) => {

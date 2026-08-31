@@ -16,8 +16,9 @@ export function PlotDirectory({
   initialPlots: PlotRecord[];
   mode: DirectoryMode;
 }) {
-  const plots = useMoonStore((state) => state.plots);
+  const storePlots = useMoonStore((state) => state.plots);
   const hydratePlots = useMoonStore((state) => state.hydratePlots);
+  const plots = storePlots.length > 0 ? storePlots : initialPlots;
 
   useEffect(() => {
     hydratePlots(initialPlots);

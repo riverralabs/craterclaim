@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { OAUTH_PROVIDERS, oauthCallbackUrl, type OAuthProviderId } from "@/lib/auth/oauth";
+import { withSignedIn } from "@/lib/auth/redirect";
 import { Button } from "@/components/ui/button";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -106,7 +107,8 @@ export function OAuthButtons({ nextPath }: { nextPath: string }) {
             setError(tokenError.message);
             return;
           }
-          router.replace(nextPath.startsWith("/") ? nextPath : "/?select=1");
+          const dest = nextPath.startsWith("/") ? nextPath : "/?select=1";
+          router.replace(withSignedIn(dest, "google"));
           router.refresh();
         } catch (caught) {
           setError(caught instanceof Error ? caught.message : "Could not finish Google sign-in.");

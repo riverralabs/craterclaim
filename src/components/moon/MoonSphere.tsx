@@ -14,10 +14,11 @@ export const NEAR_SIDE_YAW = -Math.PI / 2;
 type MoonSphereProps = {
   segments: number;
   colorUrl: string;
+  onReady?: () => void;
   children?: React.ReactNode;
 };
 
-export function MoonSphere({ segments, colorUrl, children }: MoonSphereProps) {
+export function MoonSphere({ segments, colorUrl, onReady, children }: MoonSphereProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const oriented = useRef(false);
   const landingStarted = useRef(false);
@@ -48,6 +49,10 @@ export function MoonSphere({ segments, colorUrl, children }: MoonSphereProps) {
     colorMap.wrapS = THREE.RepeatWrapping;
     colorMap.minFilter = THREE.LinearMipmapLinearFilter;
   }, [colorMap]);
+
+  useLayoutEffect(() => {
+    onReady?.();
+  }, [colorMap, onReady]);
 
   useLayoutEffect(() => {
     const material = materialRef.current;

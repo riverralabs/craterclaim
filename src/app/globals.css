@@ -172,6 +172,34 @@
     text-align: right;
   }
 
+  .moon-still {
+    transition: opacity 400ms ease;
+  }
+
+  html[data-moon-ready] .moon-still {
+    opacity: 0;
+  }
+
+  .moon-still-orb {
+    position: absolute;
+    top: 48%;
+    left: 50%;
+    width: min(67dvh, 72vw);
+    height: min(67dvh, 72vw);
+    overflow: hidden;
+    border-radius: 50%;
+    translate: -50% -50%;
+    box-shadow: inset -18px -14px 36px rgb(0 0 0 / 42%);
+  }
+
+  .moon-still-orb img {
+    width: 200%;
+    height: 100%;
+    margin-left: -50%;
+    object-fit: cover;
+    object-position: 50% 48%;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

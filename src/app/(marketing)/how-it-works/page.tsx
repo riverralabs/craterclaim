@@ -3,6 +3,10 @@ import Link from "next/link";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { formatUsd, MIN_PLOT_PIXELS, PIXEL_PRICE } from "@/lib/moon/pricing";
+import { firstLanding } from "@/lib/plots/first-landing";
+import { listActivePlots } from "@/lib/plots/inventory";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "How It Works",
@@ -10,7 +14,9 @@ export const metadata: Metadata = {
     "Claim a digital lunar plot on CraterClaim. Two zones only: Standard and Premium.",
 };
 
-export default function HowItWorksPage() {
+export default async function HowItWorksPage() {
+  const featured = firstLanding(await listActivePlots());
+
   return (
     <main className="min-h-dvh bg-space pt-24">
       <div className="mx-auto max-w-3xl px-4 pb-16 sm:px-6">
@@ -25,6 +31,57 @@ export default function HowItWorksPage() {
           land, ads, traffic, or rankings. You are leaving a named place on a permanent
           Moon.
         </p>
+
+        <section className="mt-10">
+          <h2 className="font-heading text-xl font-semibold">Product tour</h2>
+          <p className="mt-2 text-sm leading-relaxed text-lunar-silver">
+            Watch the loop: explore, select a plot, and claim a landing.
+          </p>
+          <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-charcoal">
+            <video
+              className="aspect-video w-full bg-space"
+              controls
+              playsInline
+              preload="metadata"
+              aria-label="CraterClaim product tour"
+            >
+              <source src="/media/craterclaim-product-tour.webm" type="video/webm" />
+              <source src="/media/craterclaim-product-tour.mp4" type="video/mp4" />
+            </video>
+          </div>
+        </section>
+
+        {featured ? (
+          <section className="mt-10 rounded-2xl border border-gold/30 bg-charcoal/70 p-5">
+            <p className="font-mono text-[10px] tracking-[0.28em] text-gold uppercase">
+              First landing
+            </p>
+            <h2 className="font-heading mt-2 text-2xl font-semibold">
+              {featured.name ?? featured.id}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-lunar-silver">
+              {featured.id} · {featured.width}×{featured.height} · {featured.lunarFeature}.
+              Digital plot only — not physical land.
+            </p>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <Button
+                asChild
+                size="lg"
+                className="min-h-11 cursor-pointer bg-electric-white text-space hover:bg-electric-white/90"
+              >
+                <Link href={`/plot/${featured.id}`}>View the deed</Link>
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="min-h-11 cursor-pointer border-white/15"
+              >
+                <Link href={`/?focus=${featured.id}`}>See it on the Moon</Link>
+              </Button>
+            </div>
+          </section>
+        ) : null}
 
         <ol className="mt-10 space-y-6">
           <Step

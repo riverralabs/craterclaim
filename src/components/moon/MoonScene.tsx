@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { CameraController, IDLE_DISTANCE } from "@/components/moon/CameraController";
@@ -56,12 +56,14 @@ function MoonExperience({
   avoidRight,
   avoidBottom,
   hero,
+  onReady,
 }: {
   isMobile: boolean;
   showLabels: boolean;
   avoidRight: number;
   avoidBottom: number;
   hero: boolean;
+  onReady: () => void;
 }) {
   const colorUrl = isMobile ? "/textures/moon/color.webp" : "/textures/moon/color-2k.webp";
   const segments = isMobile ? 40 : 72;
@@ -70,7 +72,7 @@ function MoonExperience({
     <>
       <Starfield />
       <MoonLights />
-      <MoonSphere segments={segments} colorUrl={colorUrl}>
+      <MoonSphere segments={segments} colorUrl={colorUrl} onReady={onReady}>
         <OwnershipLayer segments={segments} />
         <PlotGlowLayer />
         <PlotLogoLayer />
@@ -96,6 +98,8 @@ export function MoonScene() {
   const landingMode = useMoonStore((state) => state.landingMode);
   const [webgl, setWebgl] = useState<boolean | null>(null);
   const [isMobile, setIsMobile] = useState(true);
+  const [sphereReady, setSphereReady] = useState(false);
+  const markReady = useCallback(() => setSphereReady(true), []);
 
   useEffect(() => {
     setWebgl(hasWebGL());
@@ -105,6 +109,15 @@ export function MoonScene() {
     media.addEventListener("change", onChange);
     return () => media.removeEventListener("change", onChange);
   }, []);
+
+  useEffect(() => {
+    if (webgl === false || sphereReady) {
+      document.documentElement.dataset.moonReady = "1";
+    }
+    return () => {
+      delete document.documentElement.dataset.moonReady;
+    };
+  }, [sphereReady, webgl]);
 
   const dpr = useMemo<[number, number]>(() => (isMobile ? [1, 1.15] : [1, 1.35]), [isMobile]);
 
@@ -118,7 +131,7 @@ export function MoonScene() {
   }
 
   if (webgl === null) {
-    return <div className="absolute inset-0 bg-space" aria-hidden="true" />;
+    return null;
   }
 
   return (
@@ -145,6 +158,7 @@ export function MoonScene() {
             avoidRight={isExploring || isMobile ? 28 : 348}
             avoidBottom={isMobile ? (isExploring ? 132 : 168) : isExploring ? 84 : 28}
             hero={!isExploring && !isMobile}
+            onReady={markReady}
           />
         </Suspense>
       </Canvas>

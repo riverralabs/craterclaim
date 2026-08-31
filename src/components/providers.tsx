@@ -1,9 +1,9 @@
 "use client";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect } from "react";
 import posthog from "posthog-js";
 import { PostHogProvider } from "posthog-js/react";
+import { AuthFunnel } from "@/components/analytics/AuthFunnel";
 
 function Analytics({ children }: { children: React.ReactNode }) {
   const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
@@ -24,21 +24,12 @@ function Analytics({ children }: { children: React.ReactNode }) {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 60_000,
-            refetchOnWindowFocus: false,
-          },
-        },
-      }),
-  );
-
   return (
-    <QueryClientProvider client={queryClient}>
-      <Analytics>{children}</Analytics>
-    </QueryClientProvider>
+    <Analytics>
+      <Suspense fallback={null}>
+        <AuthFunnel />
+      </Suspense>
+      {children}
+    </Analytics>
   );
 }

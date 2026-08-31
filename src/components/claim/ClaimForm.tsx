@@ -95,6 +95,7 @@ export function ClaimForm() {
       }
       setReservation(result.data);
       setReserveError(null);
+      trackEvent("reserve", { plot_id: result.data.id });
       void prepareLemonCheckout(result.data.id).then((checkout) => {
         if (cancelled || !checkout.ok || checkout.data.mode !== "lemon" || !checkout.data.url) return;
         setLemonUrl(checkout.data.url);
