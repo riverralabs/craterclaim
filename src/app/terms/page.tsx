@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage } from "@/components/legal/LegalPage";
+import { OPERATOR_EMAIL, OPERATOR_MAILTO, OPERATOR_NAME } from "@/lib/legal/operator";
 
 export const metadata: Metadata = {
   title: "Terms",
@@ -9,11 +10,12 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <LegalPage kicker="Legal" title="Terms of use." updated="26 August 2026">
+    <LegalPage kicker="Legal" title="Terms of use." updated="1 September 2026">
       <p>
-        These terms are the agreement between you and the operator of CraterClaim (“we”, “us”)
-        when you visit the site, create an account, or claim a digital lunar plot. By using the
-        service you accept them. If you do not, do not claim a plot.
+        These terms are the agreement between you and {OPERATOR_NAME} (“we”, “us”), the operator
+        of CraterClaim, when you visit the site, create an account, or claim a digital lunar
+        plot. By using the service you accept them. If you do not, do not claim a plot. Contact:{" "}
+        <a href={OPERATOR_MAILTO}>{OPERATOR_EMAIL}</a>.
       </p>
 
       <h2>What CraterClaim is</h2>
@@ -73,8 +75,9 @@ export default function TermsPage() {
       <h2>Other</h2>
       <p>
         We may change prices, zones, or these terms for future purchases. The version accepted
-        at checkout applies to that plot. Governing law is the law of the place where the
-        operator is established, without limiting non-waivable consumer rights in your country.
+        at checkout applies to that plot. Governing law is the law of the place where{" "}
+        {OPERATOR_NAME} is established, without limiting non-waivable consumer rights in your
+        country. Questions: <a href={OPERATOR_MAILTO}>{OPERATOR_EMAIL}</a>.
       </p>
     </LegalPage>
   );

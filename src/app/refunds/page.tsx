@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage } from "@/components/legal/LegalPage";
+import { OPERATOR_EMAIL, OPERATOR_MAILTO, OPERATOR_NAME } from "@/lib/legal/operator";
 
 export const metadata: Metadata = {
   title: "Refunds",
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function RefundsPage() {
   return (
-    <LegalPage kicker="Legal" title="Refunds." updated="26 August 2026">
+    <LegalPage kicker="Legal" title="Refunds." updated="1 September 2026">
       <p>
         Digital lunar plots are supplied as soon as payment is confirmed. <strong>We do not
         provide refunds</strong> — not for change of mind, not for unused plots, and not because
@@ -45,9 +46,9 @@ export default function RefundsPage() {
 
       <h2>If the statute still requires it</h2>
       <p>
-        If a non-waivable law still requires a refund after the above, contact us with the plot
-        ID and Lemon Squeezy receipt. That is the only path. See the{" "}
-        <Link href="/terms">terms</Link>.
+        If a non-waivable law still requires a refund after the above, email{" "}
+        {OPERATOR_NAME} at <a href={OPERATOR_MAILTO}>{OPERATOR_EMAIL}</a> with the plot ID and
+        Lemon Squeezy receipt. That is the only path. See the <Link href="/terms">terms</Link>.
       </p>
     </LegalPage>
   );

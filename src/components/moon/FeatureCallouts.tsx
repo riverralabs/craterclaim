@@ -32,8 +32,14 @@ function elbowPath(pin: CalloutPin) {
   return `M ${pin.x} ${pin.y} L ${pin.exitX} ${pin.exitY} L ${pin.jointX} ${pin.jointY} L ${pin.labelX} ${pin.labelY}`;
 }
 
-function escapeHtml(value: string) {
-  return value
+function asCaption(value: unknown) {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return "";
+}
+
+function escapeHtml(value: unknown) {
+  return asCaption(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
@@ -293,7 +299,7 @@ export function CalloutTracker({
       if (Math.hypot(x - cx, y - cy) > moonR + 8) continue;
       facing.push({
         id: entry.feature.id,
-        title: entry.feature.name,
+        title: asCaption(entry.feature.name) || entry.feature.id,
         subtitle: captionFor(entry.feature),
         x,
         y,

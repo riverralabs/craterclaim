@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage } from "@/components/legal/LegalPage";
+import { OPERATOR_EMAIL, OPERATOR_MAILTO, OPERATOR_NAME } from "@/lib/legal/operator";
 
 export const metadata: Metadata = {
   title: "Privacy",
@@ -9,11 +10,12 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalPage kicker="Legal" title="Privacy." updated="27 August 2026">
+    <LegalPage kicker="Legal" title="Privacy." updated="1 September 2026">
       <p>
-        CraterClaim is a public map. What you put on a landing is meant to be seen. This notice
-        explains the smaller set of data we keep so you can sign in, pay, and come back to your
-        plots.
+        CraterClaim is a public map operated by {OPERATOR_NAME}. What you put on a landing is
+        meant to be seen. This notice explains the smaller set of data we keep so you can sign
+        in, pay, and come back to your plots. Contact:{" "}
+        <a href={OPERATOR_MAILTO}>{OPERATOR_EMAIL}</a>.
       </p>
 
       <h2>Who holds what</h2>
@@ -58,8 +60,8 @@ export default function PrivacyPage() {
       <p>
         Depending on where you live you may access, correct, delete, or export personal data,
         or object to some processing. Public plot content you chose to publish may remain as a
-        historical map entry unless we agree to remove it. Contact us through the site or the
-        email on your receipt.
+        historical map entry unless we agree to remove it. Write to{" "}
+        <a href={OPERATOR_MAILTO}>{OPERATOR_EMAIL}</a>, or use the email on your receipt.
       </p>
 
       <h2>Children</h2>

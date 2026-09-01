@@ -1,22 +1,26 @@
+import { Suspense } from "react";
+import { preload } from "react-dom";
 import { HomeHud } from "@/components/layout/HomeHud";
 import { LandingOverlay } from "@/components/moon/LandingOverlay";
 import { LandingQuery } from "@/components/moon/LandingQuery";
 import { MoonSceneLazy } from "@/components/moon/MoonSceneLazy";
 import { MoonStill } from "@/components/moon/MoonStill";
-import { HomePlotLoader } from "@/components/plot/HomePlotLoader";
+import { PlotHydrator } from "@/components/plot/PlotHydrator";
 import { SelectionPanel } from "@/components/selection/SelectionPanel";
-import { Suspense } from "react";
-import { preload } from "react-dom";
+import { LUNAR_FEATURES } from "@/lib/moon/regions";
+import { firstLanding } from "@/lib/plots/first-landing";
+import { listActivePlots } from "@/lib/plots/inventory";
 
-export default function HomePage() {
+export default async function HomePage() {
   preload("/textures/moon/color.webp", { as: "image", type: "image/webp" });
+  const plots = await listActivePlots();
 
   return (
     <main className="relative h-dvh overflow-hidden bg-space">
-      <HomePlotLoader />
+      <PlotHydrator plots={plots} features={LUNAR_FEATURES} />
       <MoonStill />
       <MoonSceneLazy />
-      <HomeHud featured={null} initialPlots={[]} />
+      <HomeHud featured={firstLanding(plots)} initialPlots={plots} />
       <SelectionPanel />
       <LandingOverlay />
       <Suspense fallback={null}>
