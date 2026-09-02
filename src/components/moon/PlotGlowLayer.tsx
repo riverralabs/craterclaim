@@ -15,9 +15,10 @@ function makeGlowTexture(inner: string, mid: string) {
   canvas.height = 128;
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
-  const gradient = ctx.createRadialGradient(64, 64, 6, 64, 64, 62);
-  gradient.addColorStop(0, inner);
-  gradient.addColorStop(0.35, mid);
+  const gradient = ctx.createRadialGradient(64, 64, 4, 64, 64, 62);
+  gradient.addColorStop(0, "rgba(0,0,0,0)");
+  gradient.addColorStop(0.28, inner);
+  gradient.addColorStop(0.58, mid);
   gradient.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, 128, 128);
@@ -44,13 +45,13 @@ function HeldGlow({
   useFrame(({ clock }) => {
     if (!material.current) return;
     if (reducedMotion) {
-      material.current.opacity = pulse ? 0.58 : 0.34;
+      material.current.opacity = pulse ? 0.36 : 0.2;
       return;
     }
     const t = clock.elapsedTime;
-    const idle = 0.3 + 0.12 * (0.5 + 0.5 * Math.sin(t * 1.7 + plot.x * 0.02));
-    const burst = pulse ? 0.26 + 0.22 * (0.5 + 0.5 * Math.sin(t * 5.4)) : 0;
-    material.current.opacity = Math.min(0.88, idle + burst);
+    const idle = 0.16 + 0.07 * (0.5 + 0.5 * Math.sin(t * 1.7 + plot.x * 0.02));
+    const burst = pulse ? 0.14 + 0.1 * (0.5 + 0.5 * Math.sin(t * 5.4)) : 0;
+    material.current.opacity = Math.min(0.48, idle + burst);
   });
 
   return (
@@ -83,8 +84,8 @@ export function PlotGlowLayer() {
 
   const textures = useMemo(
     () => ({
-      premium: makeGlowTexture("rgba(255, 232, 170, 0.95)", "rgba(224, 184, 79, 0.55)"),
-      standard: makeGlowTexture("rgba(236, 244, 255, 0.9)", "rgba(154, 216, 255, 0.42)"),
+      premium: makeGlowTexture("rgba(255, 232, 170, 0.28)", "rgba(224, 184, 79, 0.42)"),
+      standard: makeGlowTexture("rgba(236, 244, 255, 0.22)", "rgba(154, 216, 255, 0.32)"),
     }),
     [],
   );

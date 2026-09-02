@@ -22,9 +22,9 @@ function paintGlow(
   radius: number,
 ) {
   const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-  gradient.addColorStop(0, "rgba(255, 214, 110, 0.78)");
-  gradient.addColorStop(0.22, "rgba(224, 184, 79, 0.5)");
-  gradient.addColorStop(0.52, "rgba(224, 184, 79, 0.2)");
+  gradient.addColorStop(0, "rgba(255, 214, 110, 0.38)");
+  gradient.addColorStop(0.22, "rgba(224, 184, 79, 0.24)");
+  gradient.addColorStop(0.52, "rgba(224, 184, 79, 0.1)");
   gradient.addColorStop(1, "rgba(224, 184, 79, 0)");
   ctx.fillStyle = gradient;
   ctx.beginPath();
@@ -122,7 +122,7 @@ function drawLogoMark(
   const w = Math.max(1, plot.width * sx);
   const h = Math.max(1, plot.height * sy);
   const premium = plot.zone === "premium";
-  const inner = premium ? "rgba(255, 232, 170, 0.55)" : "rgba(220, 226, 236, 0.4)";
+  const inner = premium ? "rgba(255, 232, 170, 0.14)" : "rgba(220, 226, 236, 0.12)";
   const stroke = highlight
     ? "#ffffff"
     : premium
@@ -135,7 +135,7 @@ function drawLogoMark(
   ctx.save();
   const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, aura);
   halo.addColorStop(0, inner);
-  halo.addColorStop(0.4, premium ? "rgba(224, 184, 79, 0.18)" : "rgba(183, 188, 198, 0.12)");
+  halo.addColorStop(0.4, premium ? "rgba(224, 184, 79, 0.1)" : "rgba(183, 188, 198, 0.08)");
   halo.addColorStop(1, "rgba(0, 0, 0, 0)");
   ctx.fillStyle = halo;
   ctx.beginPath();
