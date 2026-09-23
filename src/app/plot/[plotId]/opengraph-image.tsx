@@ -1,16 +1,15 @@
 import { ImageResponse } from "next/og";
-import { getPlot } from "@/lib/plots/inventory";
+import { getPublicPlot } from "@/lib/plots/inventory";
 import { renderShareCard } from "@/lib/plots/render-share-card";
 
-export const runtime = "nodejs";
 export const alt = "CraterClaim lunar deed";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function Image({ params }: { params: Promise<{ plotId: string }> }) {
   const { plotId } = await params;
-  const plot = await getPlot(plotId);
-  if (!plot || plot.status !== "active") {
+  const plot = await getPublicPlot(plotId);
+  if (!plot) {
     return new ImageResponse(
       (
         <div

@@ -1,15 +1,17 @@
 import type { MetadataRoute } from "next";
+import { siteOrigin } from "@/lib/seo/site";
 
 export default function robots(): MetadataRoute.Robots {
-  const site = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const site = siteOrigin();
   return {
     rules: [
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin", "/api/", "/auth/", "/account", "/monitoring"],
+        disallow: ["/admin", "/api/", "/auth/", "/account", "/login", "/claim", "/monitoring"],
       },
     ],
     sitemap: `${site}/sitemap.xml`,
+    host: site,
   };
 }

@@ -115,6 +115,26 @@ export async function getPlot(id: string) {
   return plots.get(id) ?? null;
 }
 
+function toPublic(plot: PlotRecord): PlotRecord {
+  return {
+    ...plot,
+    ownerId: null,
+    paymentProvider: null,
+    paymentId: null,
+    moderationNotes: null,
+  };
+}
+
+export async function listPublicPlots() {
+  return (await listActivePlots()).map(toPublic);
+}
+
+export async function getPublicPlot(id: string) {
+  await load();
+  const plot = bucket().__craterclaimPlots!.get(id);
+  return plot?.status === "active" ? toPublic(plot) : null;
+}
+
 export async function upsertPlot(plot: PlotRecord) {
   const plots = await expireReservations();
   plots.set(plot.id, plot);

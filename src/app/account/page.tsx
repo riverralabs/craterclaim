@@ -15,6 +15,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Account",
   description: "Your CraterClaim landings.",
+  robots: { index: false, follow: false },
 };
 
 export default async function AccountPage() {

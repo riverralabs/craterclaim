@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Outfit, Syne } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { SiteJsonLd } from "@/components/seo/JsonLd";
+import { siteOrigin } from "@/lib/seo/site";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -18,23 +20,41 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
 });
 
+const site = siteOrigin();
+const title = "CraterClaim — Claim your place on the Moon.";
+const description =
+  "Claim a digital lunar plot, put your startup, project, community, or name there, and leave your mark on a permanent public Moon map.";
+
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(site),
   title: {
-    default: "CraterClaim — Claim your place on the Moon.",
+    default: title,
     template: "%s · CraterClaim",
   },
-  description:
-    "Claim a digital lunar plot, put your startup, project, community, or name there, and leave your mark on a permanent public Moon map.",
+  description,
   applicationName: "CraterClaim",
   keywords: ["CraterClaim", "Moon", "digital lunar plot", "lunar map"],
-  icons: {
-    icon: [
-      { url: "/favicon.ico" },
-      { url: "/brand/logo.png", type: "image/png", sizes: "512x512" },
-    ],
-    apple: [{ url: "/brand/logo.png", sizes: "180x180" }],
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: site,
+    siteName: "CraterClaim",
+    title,
+    description,
   },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
+  },
+  verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
+    : undefined,
 };
 
 export const viewport: Viewport = {
@@ -55,6 +75,7 @@ export default function RootLayout({
       className={`dark ${outfit.variable} ${syne.variable} ${geistMono.variable} ${outfit.className}`}
     >
       <body className="min-h-dvh bg-space text-electric-white antialiased">
+        <SiteJsonLd />
         <Providers>{children}</Providers>
       </body>
     </html>

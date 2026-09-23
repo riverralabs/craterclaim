@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { listActivePlots } from "@/lib/plots/inventory";
+import { listPublicPlots } from "@/lib/plots/inventory";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export async function GET() {
-  const plots = await listActivePlots();
+  const plots = await listPublicPlots();
   return NextResponse.json({ plots });
 }

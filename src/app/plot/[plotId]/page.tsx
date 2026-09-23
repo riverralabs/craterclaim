@@ -1,21 +1,26 @@
 import type { Metadata } from "next";
 import { PlotClientFallback } from "@/components/plot/PlotClientFallback";
 import { PlotLanding } from "@/components/plot/PlotLanding";
-import { getPlot } from "@/lib/plots/inventory";
+import { getPublicPlot } from "@/lib/plots/inventory";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 type PlotPageProps = {
   params: Promise<{ plotId: string }>;
 };
 
+export function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({ params }: PlotPageProps): Promise<Metadata> {
   const { plotId } = await params;
-  const plot = await getPlot(plotId);
-  if (!plot || plot.status !== "active") {
+  const plot = await getPublicPlot(plotId);
+  if (!plot) {
     return {
       title: `Plot ${plotId}`,
       description: "A CraterClaim digital lunar plot.",
+      robots: { index: false, follow: false },
     };
   }
 
@@ -27,10 +32,13 @@ export async function generateMetadata({ params }: PlotPageProps): Promise<Metad
   return {
     title: plot.name ?? `Plot ${plot.id}`,
     description,
+    alternates: { canonical: `/plot/${plot.id}` },
+    robots: { index: true, follow: true },
     openGraph: {
       title,
       description,
       type: "article",
+      url: `/plot/${plot.id}`,
       images: [
         {
           url: `/plot/${plotId}/opengraph-image`,
@@ -51,9 +59,9 @@ export async function generateMetadata({ params }: PlotPageProps): Promise<Metad
 
 export default async function PlotPage({ params }: PlotPageProps) {
   const { plotId } = await params;
-  const plot = await getPlot(plotId);
+  const plot = await getPublicPlot(plotId);
 
-  if (plot?.status === "active") {
+  if (plot) {
     return <PlotLanding plot={plot} />;
   }
 

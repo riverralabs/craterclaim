@@ -6,6 +6,7 @@ import { LoginForm } from "@/components/auth/LoginForm";
 export const metadata: Metadata = {
   title: "Sign in",
   description: "Sign in to CraterClaim to claim and manage digital lunar plots.",
+  robots: { index: false, follow: false },
 };
 
 type LoginPageProps = {

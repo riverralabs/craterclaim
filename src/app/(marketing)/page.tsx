@@ -9,11 +9,13 @@ import { PlotHydrator } from "@/components/plot/PlotHydrator";
 import { SelectionPanel } from "@/components/selection/SelectionPanel";
 import { LUNAR_FEATURES } from "@/lib/moon/regions";
 import { firstLanding } from "@/lib/plots/first-landing";
-import { listActivePlots } from "@/lib/plots/inventory";
+import { listPublicPlots } from "@/lib/plots/inventory";
+
+export const revalidate = 300;
 
 export default async function HomePage() {
   preload("/textures/moon/color.webp", { as: "image", type: "image/webp" });
-  const plots = await listActivePlots();
+  const plots = await listPublicPlots();
 
   return (
     <main className="relative h-dvh overflow-hidden bg-space">

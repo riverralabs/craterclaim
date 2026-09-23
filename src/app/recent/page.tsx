@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
 import { PlotDirectory } from "@/components/plot/PlotDirectory";
-import { listActivePlots } from "@/lib/plots/inventory";
+import { listPublicPlots } from "@/lib/plots/inventory";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Recent claims",
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function RecentPage() {
-  const plots = await listActivePlots();
+  const plots = await listPublicPlots();
 
   return (
     <>

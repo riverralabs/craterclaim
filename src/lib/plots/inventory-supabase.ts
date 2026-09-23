@@ -1,8 +1,13 @@
+import { createClient as createAnonClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/config";
 import type { PlotRecord, PlotStatus, Zone } from "@/types";
 
 const RESERVATION_MS = 15 * 60 * 1000;
+
+const PUBLIC_COLUMNS =
+  "id,x,y,width,height,pixel_count,center_latitude,center_longitude,lunar_feature,zone,status,quoted_price,price_paid,claim_date,reserved_until,name,description,website_url,social_handle,logo_url,created_at";
 
 type PlotRow = {
   id: string;
@@ -31,6 +36,18 @@ type PlotRow = {
   moderation_notes: string | null;
   created_at: string;
 };
+
+type PublicPlotRow = Omit<PlotRow, "owner_id" | "payment_provider" | "payment_id" | "moderation_notes">;
+
+function fromPublicRow(row: PublicPlotRow): PlotRecord {
+  return fromRow({
+    ...row,
+    owner_id: null,
+    payment_provider: null,
+    payment_id: null,
+    moderation_notes: null,
+  });
+}
 
 function fromRow(row: PlotRow): PlotRecord {
   return {
@@ -95,6 +112,34 @@ async function db() {
   const admin = createAdminClient();
   if (admin) return admin;
   return createClient();
+}
+
+/** Cookie-free anon client so public reads can run inside the data cache. RLS limits it to active plots. */
+function publicDb() {
+  return createAnonClient(supabaseUrl(), supabaseAnonKey(), {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+export async function listPublicPlots() {
+  const { data, error } = await publicDb()
+    .from("plots")
+    .select(PUBLIC_COLUMNS)
+    .eq("status", "active")
+    .order("claim_date", { ascending: false });
+  if (error) throw error;
+  return ((data ?? []) as PublicPlotRow[]).map(fromPublicRow);
+}
+
+export async function getPublicPlot(id: string) {
+  const { data, error } = await publicDb()
+    .from("plots")
+    .select(PUBLIC_COLUMNS)
+    .eq("id", id)
+    .eq("status", "active")
+    .maybeSingle();
+  if (error) throw error;
+  return data ? fromPublicRow(data as PublicPlotRow) : null;
 }
 
 export function reservationMs() {

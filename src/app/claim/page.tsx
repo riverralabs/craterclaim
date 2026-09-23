@@ -9,6 +9,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 export const metadata: Metadata = {
   title: "Claim a plot",
   description: "Name your digital lunar plot and pay with Lemon Squeezy.",
+  robots: { index: false, follow: false },
 };
 
 export default async function ClaimPage() {

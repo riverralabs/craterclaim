@@ -5,11 +5,31 @@ import { PlotCard } from "@/components/plot/PlotCard";
 import { SharePlotButton } from "@/components/plot/SharePlotButton";
 import { formatUsd } from "@/lib/moon/pricing";
 import { formatSocial } from "@/lib/plots/social";
+import { siteOrigin } from "@/lib/seo/site";
 import type { PlotRecord } from "@/types";
 
 export function PlotLanding({ plot }: { plot: PlotRecord }) {
+  const site = siteOrigin();
+  const name = plot.name ?? plot.id;
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CreativeWork",
+    name,
+    url: `${site}/plot/${plot.id}`,
+    description:
+      plot.description ?? `A ${plot.zone} digital lunar plot near ${plot.lunarFeature}.`,
+    identifier: plot.id,
+    dateCreated: plot.claimDate ?? plot.createdAt,
+    image: `${site}/plot/${plot.id}/opengraph-image`,
+    isPartOf: { "@type": "WebSite", name: "CraterClaim", url: site },
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <LandingViewed plotId={plot.id} />
       <Navbar />
       <main className="flex min-h-dvh flex-col bg-space pt-24">

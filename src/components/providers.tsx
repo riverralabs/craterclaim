@@ -1,35 +1,30 @@
 "use client";
 
 import { Suspense, useEffect } from "react";
-import posthog from "posthog-js";
-import { PostHogProvider } from "posthog-js/react";
 import { AuthFunnel } from "@/components/analytics/AuthFunnel";
+import { loadAnalytics } from "@/lib/analytics";
 
-function Analytics({ children }: { children: React.ReactNode }) {
-  const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-  const host = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com";
-
+function useDeferredAnalytics() {
   useEffect(() => {
-    if (!key) return;
-    posthog.init(key, {
-      api_host: host,
-      person_profiles: "identified_only",
-      capture_pageview: true,
-      capture_pageleave: true,
-    });
-  }, [host, key]);
-
-  if (!key) return children;
-  return <PostHogProvider client={posthog}>{children}</PostHogProvider>;
+    const start = () => void loadAnalytics();
+    if (window.requestIdleCallback) {
+      const idle = window.requestIdleCallback(start, { timeout: 3000 });
+      return () => window.cancelIdleCallback(idle);
+    }
+    const timeout = window.setTimeout(start, 1500);
+    return () => window.clearTimeout(timeout);
+  }, []);
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  useDeferredAnalytics();
+
   return (
-    <Analytics>
+    <>
       <Suspense fallback={null}>
         <AuthFunnel />
       </Suspense>
       {children}
-    </Analytics>
+    </>
   );
 }

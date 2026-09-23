@@ -4,7 +4,7 @@ import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
 import { PlotCard } from "@/components/plot/PlotCard";
 import { listLunarFeatures } from "@/lib/moon/features";
-import { listActivePlots } from "@/lib/plots/inventory";
+import { listPublicPlots } from "@/lib/plots/inventory";
 import { searchFeatures, searchPlots } from "@/lib/plots/search";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +20,7 @@ type SearchPageProps = {
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const { q = "" } = await searchParams;
-  const [plots, features] = await Promise.all([listActivePlots(), listLunarFeatures()]);
+  const [plots, features] = await Promise.all([listPublicPlots(), listLunarFeatures()]);
   const plotHits = searchPlots(plots, q);
   const featureHits = searchFeatures(features, q);
   const searched = q.trim().length > 0;

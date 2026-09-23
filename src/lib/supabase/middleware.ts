@@ -10,6 +10,10 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
+  if (!request.cookies.getAll().some((cookie) => cookie.name.startsWith("sb-"))) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(url, key, {

@@ -4,9 +4,9 @@ import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { formatUsd, MIN_PLOT_PIXELS, PIXEL_PRICE } from "@/lib/moon/pricing";
 import { firstLanding } from "@/lib/plots/first-landing";
-import { listActivePlots } from "@/lib/plots/inventory";
+import { listPublicPlots } from "@/lib/plots/inventory";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "How It Works",
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 export default async function HowItWorksPage() {
-  const featured = firstLanding(await listActivePlots());
+  const featured = firstLanding(await listPublicPlots());
 
   return (
     <main className="min-h-dvh bg-space pt-24">
