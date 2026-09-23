@@ -8,6 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { formatUsd, PIXEL_PRICE } from "@/lib/moon/pricing";
 import { formatLatLng } from "@/lib/moon/coordinates";
 import { prepareLemonCheckout, reservePlot, startCheckout, submitClaim } from "@/lib/plots/actions";
+import { rememberOwnedId } from "@/lib/plots/local";
 import { trackEvent } from "@/lib/analytics";
 import { useMoonStore } from "@/lib/store/moon-store";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,24 @@ import type { PlotRecord } from "@/types";
 
 const fieldClass =
   "mt-1.5 w-full rounded-xl border border-white/10 bg-space/60 px-3 py-2.5 text-sm text-electric-white outline-none placeholder:text-lunar-silver/60 focus-visible:border-violet/60";
+
+const CLAIM_TOKEN_KEY = "craterclaim-claim";
+
+function readClaimToken(selectionKey: string) {
+  try {
+    const raw = sessionStorage.getItem(CLAIM_TOKEN_KEY);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as { selectionKey?: string; token?: string };
+    if (parsed.selectionKey === selectionKey && parsed.token) return parsed.token;
+  } catch {
+    return undefined;
+  }
+  return undefined;
+}
+
+function writeClaimToken(selectionKey: string, token: string) {
+  sessionStorage.setItem(CLAIM_TOKEN_KEY, JSON.stringify({ selectionKey, token }));
+}
 
 function formatRemaining(ms: number) {
   const total = Math.max(0, Math.ceil(ms / 1000));
@@ -43,6 +62,8 @@ export function ClaimForm() {
   const [consent, setConsent] = useState(false);
   const [terms, setTerms] = useState(false);
   const [lemonUrl, setLemonUrl] = useState<string | null>(null);
+  const [checkoutMode, setCheckoutMode] = useState<"pending" | "lemon" | "mock">("pending");
+  const [buyerEmail, setBuyerEmail] = useState("");
   const selectionKey = selection
     ? `${selection.x}:${selection.y}:${selection.width}:${selection.height}`
     : "";
@@ -71,11 +92,13 @@ export function ClaimForm() {
   const runReserve = useCallback(async () => {
     const current = useMoonStore.getState().selection;
     if (!current) return { ok: false as const, error: "Select a plot first." };
+    const key = `${current.x}:${current.y}:${current.width}:${current.height}`;
     return reservePlot({
       x: current.x,
       y: current.y,
       width: current.width,
       height: current.height,
+      claimToken: readClaimToken(key),
     });
   }, []);
 
@@ -85,6 +108,7 @@ export function ClaimForm() {
     setReservation(null);
     setReserveError(null);
     setLemonUrl(null);
+    setCheckoutMode("pending");
 
     void (async () => {
       const result = await runReserve();
@@ -93,12 +117,21 @@ export function ClaimForm() {
         setReserveError(result.error);
         return;
       }
-      setReservation(result.data);
+      writeClaimToken(selectionKey, result.data.claimToken);
+      setReservation(result.data.plot);
       setReserveError(null);
-      trackEvent("reserve", { plot_id: result.data.id });
-      void prepareLemonCheckout(result.data.id).then((checkout) => {
-        if (cancelled || !checkout.ok || checkout.data.mode !== "lemon" || !checkout.data.url) return;
-        setLemonUrl(checkout.data.url);
+      trackEvent("reserve", { plot_id: result.data.plot.id });
+      void prepareLemonCheckout(result.data.plot.id, result.data.claimToken).then((checkout) => {
+        if (cancelled || !checkout.ok) {
+          if (!cancelled) setCheckoutMode("mock");
+          return;
+        }
+        if (checkout.data.mode === "lemon" && checkout.data.url) {
+          setLemonUrl(checkout.data.url);
+          setCheckoutMode("lemon");
+          return;
+        }
+        setCheckoutMode("mock");
       });
     })();
 
@@ -170,12 +203,26 @@ export function ClaimForm() {
       return;
     }
 
+    const claimToken = readClaimToken(selectionKey);
+    if (!claimToken) {
+      setPending(false);
+      setFormError("This reservation expired. Select the plot again.");
+      return;
+    }
+
+    if (checkoutMode === "mock" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyerEmail.trim())) {
+      setPending(false);
+      setFormError("Enter the email for your landing card.");
+      return;
+    }
+
     let uploadedLogoUrl: string | null = null;
     if (logoFile) {
       const body = new FormData();
       body.set("file", logoFile);
       const uploaded = await fetch(`/api/plots/${reservation.id}/logo`, {
         method: "POST",
+        headers: { "x-claim-token": claimToken },
         body,
       });
       const payload = (await uploaded.json()) as { url?: string; error?: string };
@@ -189,6 +236,7 @@ export function ClaimForm() {
 
     const submitted = await submitClaim({
       plotId: reservation.id,
+      claimToken,
       name,
       description: "",
       websiteUrl,
@@ -207,7 +255,7 @@ export function ClaimForm() {
 
     const checkout = lemonUrl
       ? { ok: true as const, data: { mode: "lemon" as const, url: lemonUrl } }
-      : await startCheckout(submitted.data.id);
+      : await startCheckout(submitted.data.id, claimToken, buyerEmail.trim());
     if (!checkout.ok) {
       setPending(false);
       setFormError(checkout.error);
@@ -215,6 +263,7 @@ export function ClaimForm() {
     }
 
     trackEvent("checkout_started", { plot_id: submitted.data.id, mode: checkout.data.mode });
+    rememberOwnedId(submitted.data.id);
 
     if (checkout.data.mode === "lemon" && checkout.data.url) {
       const lemon = window as Window & {
@@ -238,6 +287,9 @@ export function ClaimForm() {
     }
 
     rememberPlot(checkout.data.plot);
+    if (checkout.data.editUrl) {
+      sessionStorage.setItem(`cc-edit-${checkout.data.plot.id}`, checkout.data.editUrl);
+    }
     router.push(`/?landing=${checkout.data.plot.id}`);
   }
 
@@ -275,9 +327,11 @@ export function ClaimForm() {
         <p className="text-xs font-medium tracking-[0.22em] text-violet uppercase">Claim</p>
         <h1 className="font-heading text-4xl font-bold tracking-tight">Name this landing.</h1>
         <p className="text-sm leading-relaxed text-lunar-silver">
-          {lemonUrl
-            ? "Checkout opens Lemon Squeezy. Digital plots only — not physical land."
-            : "Checkout is Lemon Squeezy when those keys are set. Until then, local mock checkout still lands a plot so we can test the loop. Digital plots only — not physical land."}{" "}
+          {checkoutMode === "lemon"
+            ? "Checkout opens Lemon Squeezy. We email your landing card and a private edit link to the address you pay with."
+            : checkoutMode === "mock"
+              ? "Checkout is in test mode on this server. Enter an email and we will send the landing card there. Digital plots only — not physical land."
+              : "Reserving this plot. Digital plots only — not physical land."}{" "}
           <Link href="/guidelines" className="underline decoration-white/20 hover:text-electric-white">
             Content rules
           </Link>
@@ -322,6 +376,20 @@ export function ClaimForm() {
             Shown on the share card if you add it. Sharing still works without it.
           </span>
         </label>
+
+        {checkoutMode === "mock" ? (
+          <label className="block text-sm">
+            Email for the landing card
+            <input
+              type="email"
+              required
+              value={buyerEmail}
+              onChange={(event) => setBuyerEmail(event.target.value)}
+              className={fieldClass}
+              placeholder="you@example.com"
+            />
+          </label>
+        ) : null}
 
         <label className="block text-sm">
           Logo
@@ -413,10 +481,15 @@ export function ClaimForm() {
                       setReserveError(result.error);
                       return;
                     }
-                    setReservation(result.data);
-                    void prepareLemonCheckout(result.data.id).then((checkout) => {
-                      if (!checkout.ok || checkout.data.mode !== "lemon" || !checkout.data.url) return;
+                    writeClaimToken(selectionKey, result.data.claimToken);
+                    setReservation(result.data.plot);
+                    void prepareLemonCheckout(result.data.plot.id, result.data.claimToken).then((checkout) => {
+                      if (!checkout.ok || checkout.data.mode !== "lemon" || !checkout.data.url) {
+                        setCheckoutMode("mock");
+                        return;
+                      }
                       setLemonUrl(checkout.data.url);
+                      setCheckoutMode("lemon");
                     });
                   })();
                 }}

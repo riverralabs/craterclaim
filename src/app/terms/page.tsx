@@ -10,11 +10,11 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <LegalPage kicker="Legal" title="Terms of use." updated="1 September 2026">
+    <LegalPage kicker="Legal" title="Terms of use." updated="23 September 2026">
       <p>
         These terms are the agreement between you and {OPERATOR_NAME} (“we”, “us”), the operator
-        of CraterClaim, when you visit the site, create an account, or claim a digital lunar
-        plot. By using the service you accept them. If you do not, do not claim a plot. Contact:{" "}
+        of CraterClaim, when you visit the site or claim a digital lunar plot. By using the
+        service you accept them. If you do not, do not claim a plot. Contact:{" "}
         <a href={OPERATOR_MAILTO}>{OPERATOR_EMAIL}</a>.
       </p>
 
@@ -27,12 +27,12 @@ export default function TermsPage() {
         clicks, rankings, leads, or sales.
       </p>
 
-      <h2>Accounts</h2>
+      <h2>Your landing</h2>
       <p>
-        You sign in with Google, Apple, or X. We do not issue passwords for buyer accounts. You
-        are responsible for that provider account. Plots you pay for are attached to that
-        sign-in. We may suspend an account that breaks these terms or the{" "}
-        <Link href="/guidelines">content rules</Link>.
+        You do not need an account. Checkout collects an email address. We send the public plot
+        page and a private edit link to that address. Anyone with the edit link can change the
+        logo, website, and social handle. We may suspend a landing that breaks these terms or
+        the <Link href="/guidelines">content rules</Link>.
       </p>
 
       <h2>Claims and payment</h2>

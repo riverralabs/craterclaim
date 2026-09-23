@@ -3,33 +3,43 @@
 import { z } from "zod";
 import { rectsOverlap, sameGeometry } from "@/lib/plots/overlap";
 import {
+  countOpenHolds,
+  countRateEvents,
   getPlot,
+  getPlotAccess,
   listOccupyingPlots,
   nextPlotId,
+  recordRateEvent,
   reservationMs,
+  setPlotAccess,
   upsertPlot,
 } from "@/lib/plots/inventory";
 import { QuoteError, quoteGeometry } from "@/lib/plots/quote";
 import { mockPaymentId, MOCK_PROVIDER } from "@/lib/payments/mock";
 import { createLemonCheckout, lemonConfigured } from "@/lib/payments/lemon";
 import { moderationViolation } from "@/lib/moderation/rules";
-import { getAuthUser } from "@/lib/auth/session";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { activatePlot } from "@/lib/plots/activate";
+import { reservationBlock } from "@/lib/plots/limits";
+import { hashSecret, newSecret, SECRET_PATTERN, secretsMatch } from "@/lib/plots/secrets";
 import { normalizeSocial } from "@/lib/plots/social";
+import { visitorId } from "@/lib/plots/visitor";
 import { listLunarFeatures } from "@/lib/moon/features";
 import { recordPlotEvent } from "@/lib/plots/events";
 import type { PlotRecord } from "@/types";
+
+const claimTokenSchema = z.string().regex(SECRET_PATTERN);
 
 const geometrySchema = z.object({
   x: z.number(),
   y: z.number(),
   width: z.number(),
   height: z.number(),
+  claimToken: claimTokenSchema.optional(),
 });
 
 const claimDetailsSchema = z.object({
   plotId: z.string().regex(/^CLM-\d{4}$/),
+  claimToken: claimTokenSchema,
   name: z.string().trim().min(2).max(48),
   description: z.string().trim().max(500).optional().default(""),
   websiteUrl: z
@@ -83,41 +93,63 @@ function isHold(plot: PlotRecord) {
   return plot.status === "reserved" || plot.status === "payment_pending";
 }
 
+function toClient(plot: PlotRecord): PlotRecord {
+  return {
+    ...plot,
+    ownerId: null,
+    paymentProvider: null,
+    paymentId: null,
+    moderationNotes: null,
+  };
+}
+
+async function holdsClaim(plotId: string, token: string) {
+  const access = await getPlotAccess(plotId);
+  return Boolean(access && secretsMatch(token, access.claimTokenHash));
+}
+
 export async function reservePlot(
   input: z.infer<typeof geometrySchema>,
-): Promise<ActionResult<PlotRecord>> {
+): Promise<ActionResult<{ plot: PlotRecord; claimToken: string }>> {
   const parsed = geometrySchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid plot geometry." };
 
   try {
-    const user = await getAuthUser();
-    if (isSupabaseConfigured() && !user) {
-      return { ok: false, error: "Sign in to reserve a plot." };
-    }
-
+    const visitor = await visitorId();
     const quote = quoteGeometry(parsed.data, await listLunarFeatures());
     const existing = occupyingPlots(await listOccupyingPlots());
     const overlapping = existing.filter((plot) => rectsOverlap(quote, plot));
-    const ownHold = overlapping.find(
-      (plot) =>
-        isHold(plot) &&
-        sameGeometry(plot, quote) &&
-        (!plot.ownerId || !user || plot.ownerId === user.id),
-    );
+    const token = parsed.data.claimToken;
+    let ownHold: PlotRecord | null = null;
+    if (token) {
+      for (const plot of overlapping) {
+        if (!isHold(plot) || !sameGeometry(plot, quote)) continue;
+        if (await holdsClaim(plot.id, token)) {
+          ownHold = plot;
+          break;
+        }
+      }
+    }
 
-    if (ownHold) {
+    if (ownHold && token) {
       const refreshed: PlotRecord = {
         ...ownHold,
-        ownerId: user?.id ?? ownHold.ownerId,
         reservedUntil: new Date(Date.now() + reservationMs()).toISOString(),
       };
       await upsertPlot(refreshed);
-      return { ok: true, data: refreshed };
+      return { ok: true, data: { plot: toClient(refreshed), claimToken: token } };
     }
 
     if (overlapping.length) {
       return { ok: false, error: "That area is already claimed or reserved." };
     }
+
+    const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const blocked = reservationBlock(
+      await countOpenHolds(visitor),
+      await countRateEvents(`reserve:${visitor}`, since),
+    );
+    if (blocked) return { ok: false, error: blocked };
 
     const now = new Date();
     const plot: PlotRecord = {
@@ -141,13 +173,19 @@ export async function reservePlot(
       websiteUrl: null,
       socialHandle: null,
       logoUrl: null,
-      ownerId: user?.id ?? null,
+      ownerId: null,
       createdAt: now.toISOString(),
     };
 
     await upsertPlot(plot);
-    await recordPlotEvent(plot.id, "reserved", user?.id ?? null);
-    return { ok: true, data: plot };
+    const claimToken = newSecret();
+    await setPlotAccess(plot.id, {
+      claimTokenHash: hashSecret(claimToken),
+      visitorId: visitor,
+    });
+    await recordRateEvent(`reserve:${visitor}`);
+    await recordPlotEvent(plot.id, "reserved", null);
+    return { ok: true, data: { plot: toClient(plot), claimToken } };
   } catch (error) {
     const message = error instanceof QuoteError ? error.message : "Could not reserve this plot.";
     return { ok: false, error: message };
@@ -186,12 +224,8 @@ export async function submitClaim(
     return { ok: false, error: "This reservation expired. Select the plot again." };
   }
 
-  const user = await getAuthUser();
-  if (isSupabaseConfigured()) {
-    if (!user) return { ok: false, error: "Sign in to finish this claim." };
-    if (plot.ownerId && plot.ownerId !== user.id) {
-      return { ok: false, error: "This reservation belongs to another account." };
-    }
+  if (!(await holdsClaim(plot.id, parsed.data.claimToken))) {
+    return { ok: false, error: "This reservation expired. Select the plot again." };
   }
 
   const next: PlotRecord = {
@@ -202,29 +236,30 @@ export async function submitClaim(
     websiteUrl: parsed.data.websiteUrl || null,
     socialHandle: parsed.data.socialHandle || null,
     logoUrl: parsed.data.logoUrl || null,
-    ownerId: user?.id ?? plot.ownerId,
+    ownerId: null,
   };
 
   await upsertPlot(next);
-  await recordPlotEvent(next.id, "claim_submitted", user?.id ?? null);
-  return { ok: true, data: next };
+  await recordPlotEvent(next.id, "claim_submitted", null);
+  return { ok: true, data: toClient(next) };
 }
 
 export async function prepareLemonCheckout(
   plotId: string,
+  claimToken: string,
 ): Promise<ActionResult<{ mode: "lemon" | "mock"; url?: string }>> {
   const plot = await getPlot(plotId);
-  if (!plot) return { ok: false, error: "This reservation expired. Select the plot again." };
+  if (!plot || !(await holdsClaim(plotId, claimToken))) {
+    return { ok: false, error: "This reservation expired. Select the plot again." };
+  }
   if (plot.status === "active") return { ok: true, data: { mode: "mock" } };
   if (!lemonConfigured()) return { ok: true, data: { mode: "mock" } };
 
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  const user = await getAuthUser();
   try {
     const url = await createLemonCheckout({
       plotId: plot.id,
       name: plot.name ?? plot.id,
-      email: user?.email,
       priceUsd: plot.quotedPrice,
       redirectUrl: `${origin}/?landing=${plot.id}`,
     });
@@ -239,20 +274,16 @@ export async function prepareLemonCheckout(
 
 export async function startCheckout(
   plotId: string,
-): Promise<ActionResult<{ mode: "lemon" | "mock"; url?: string; plot?: PlotRecord }>> {
+  claimToken: string,
+  email?: string,
+): Promise<ActionResult<{ mode: "lemon" | "mock"; url?: string; plot?: PlotRecord; editUrl?: string }>> {
   const plot = await getPlot(plotId);
-  if (!plot) return { ok: false, error: "This reservation expired. Select the plot again." };
-  if (plot.status === "active") return { ok: true, data: { mode: "mock", plot } };
+  if (!plot || !(await holdsClaim(plotId, claimToken))) {
+    return { ok: false, error: "This reservation expired. Select the plot again." };
+  }
+  if (plot.status === "active") return { ok: true, data: { mode: "mock", plot: toClient(plot) } };
   if (plot.status !== "payment_pending") {
     return { ok: false, error: "Finish naming this landing before paying." };
-  }
-
-  const user = await getAuthUser();
-  if (isSupabaseConfigured()) {
-    if (!user) return { ok: false, error: "Sign in to pay." };
-    if (plot.ownerId && plot.ownerId !== user.id) {
-      return { ok: false, error: "This reservation belongs to another account." };
-    }
   }
 
   let priceUsd = plot.quotedPrice;
@@ -269,7 +300,7 @@ export async function startCheckout(
       const url = await createLemonCheckout({
         plotId: plot.id,
         name: plot.name ?? plot.id,
-        email: user?.email,
+        email,
         priceUsd,
         redirectUrl: `${origin}/?landing=${plot.id}`,
       });
@@ -286,12 +317,23 @@ export async function startCheckout(
     return { ok: false, error: "Checkout is not available." };
   }
 
-  const paid = await activatePlot(plotId, {
-    provider: MOCK_PROVIDER,
-    paymentId: mockPaymentId(plotId),
-  });
+  const paid = await activatePlot(
+    plotId,
+    {
+      provider: MOCK_PROVIDER,
+      paymentId: mockPaymentId(plotId),
+    },
+    email,
+  );
   if (!paid.ok) return paid;
-  return { ok: true, data: { mode: "mock", plot: paid.data } };
+  return {
+    ok: true,
+    data: {
+      mode: "mock",
+      plot: toClient(paid.data),
+      editUrl: paid.editUrl,
+    },
+  };
 }
 
 export async function fetchPlot(plotId: string) {

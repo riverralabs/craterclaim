@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
-import { AuthMenu } from "@/components/auth/AuthMenu";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -80,7 +79,6 @@ export function Navbar() {
         </nav>
 
         <div className="flex shrink-0 items-center gap-2">
-          <AuthMenu />
           <Button
             size="lg"
             className="hidden min-h-11 cursor-pointer bg-electric-white px-4 text-space hover:bg-electric-white/90 sm:inline-flex"
@@ -149,7 +147,6 @@ export function Navbar() {
                 >
                   Claim Your Plot
                 </Button>
-                <AuthMenu compact />
               </nav>
             </SheetContent>
           </Sheet>

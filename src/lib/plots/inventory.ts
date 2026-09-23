@@ -57,3 +57,31 @@ export async function upsertPlot(plot: PlotRecord) {
 export async function nextPlotId() {
   return store().nextPlotId();
 }
+
+export async function getPlotAccess(id: string) {
+  return store().getPlotAccess(id);
+}
+
+export async function setPlotAccess(id: string, patch: Parameters<typeof dbStore.setPlotAccess>[1]) {
+  return store().setPlotAccess(id, patch);
+}
+
+export async function countOpenHolds(visitorId: string) {
+  return store().countOpenHolds(visitorId);
+}
+
+export async function countRateEvents(bucketName: string, sinceIso: string) {
+  return store().countRateEvents(bucketName, sinceIso);
+}
+
+export async function recordRateEvent(bucketName: string) {
+  return store().recordRateEvent(bucketName);
+}
+
+export async function listPlotsByBuyerEmail(email: string) {
+  return store().listPlotsByBuyerEmail(email);
+}
+
+export async function getPlotByEditTokenHash(hash: string) {
+  return store().getPlotByEditTokenHash(hash);
+}

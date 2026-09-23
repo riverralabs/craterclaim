@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { trackEvent } from "@/lib/analytics";
+import { rememberOwnedId } from "@/lib/plots/local";
 import { useMoonStore } from "@/lib/store/moon-store";
 
 export function LandingQuery() {
@@ -27,6 +28,7 @@ export function LandingQuery() {
     if (!seen.current.has(key)) {
       seen.current.add(key);
       if (landing) {
+        rememberOwnedId(id);
         const purchaseKey = `cc-purchase-${id}`;
         if (!sessionStorage.getItem(purchaseKey)) {
           sessionStorage.setItem(purchaseKey, "1");

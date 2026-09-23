@@ -97,7 +97,7 @@ export default async function HowItWorksPage() {
           <Step
             n="03"
             title="Claim a landing"
-            body="Name the plot, add a website and logo, then complete checkout. The public plot page is the shareable destination — a landing, not an ad unit."
+            body="Name the plot, add a website and logo, then pay. No account. The public plot page is the shareable destination, and the checkout email gets the landing card plus a private edit link."
           />
         </ol>
 

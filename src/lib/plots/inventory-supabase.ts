@@ -1,7 +1,7 @@
 import { createClient as createAnonClient } from "@supabase/supabase-js";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/config";
+import type { PlotAccess } from "@/lib/plots/access";
 import type { PlotRecord, PlotStatus, Zone } from "@/types";
 
 const RESERVATION_MS = 15 * 60 * 1000;
@@ -110,8 +110,10 @@ function toRow(plot: PlotRecord) {
 
 async function db() {
   const admin = createAdminClient();
-  if (admin) return admin;
-  return createClient();
+  if (!admin) {
+    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+  }
+  return admin;
 }
 
 /** Cookie-free anon client so public reads can run inside the data cache. RLS limits it to active plots. */
@@ -203,6 +205,103 @@ export async function upsertPlot(plot: PlotRecord) {
   const { data, error } = await client.from("plots").upsert(toRow(plot)).select("*").single();
   if (error) throw error;
   return fromRow(data as PlotRow);
+}
+
+function accessFromRow(row: {
+  claim_token_hash: string | null;
+  edit_token_hash: string | null;
+  buyer_email: string | null;
+  visitor_id: string | null;
+}): PlotAccess {
+  return {
+    claimTokenHash: row.claim_token_hash,
+    editTokenHash: row.edit_token_hash,
+    buyerEmail: row.buyer_email,
+    visitorId: row.visitor_id,
+  };
+}
+
+export async function getPlotAccess(id: string): Promise<PlotAccess | null> {
+  const client = await db();
+  const { data, error } = await client
+    .from("plots")
+    .select("claim_token_hash,edit_token_hash,buyer_email,visitor_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return accessFromRow(data as {
+    claim_token_hash: string | null;
+    edit_token_hash: string | null;
+    buyer_email: string | null;
+    visitor_id: string | null;
+  });
+}
+
+export async function setPlotAccess(id: string, patch: Partial<PlotAccess>) {
+  const row: Record<string, string | null> = {};
+  if (patch.claimTokenHash !== undefined) row.claim_token_hash = patch.claimTokenHash;
+  if (patch.editTokenHash !== undefined) row.edit_token_hash = patch.editTokenHash;
+  if (patch.buyerEmail !== undefined) row.buyer_email = patch.buyerEmail;
+  if (patch.visitorId !== undefined) row.visitor_id = patch.visitorId;
+  if (!Object.keys(row).length) return;
+  const client = await db();
+  const { error } = await client.from("plots").update(row).eq("id", id);
+  if (error) throw error;
+}
+
+export async function countOpenHolds(visitorId: string) {
+  const client = await db();
+  const { count, error } = await client
+    .from("plots")
+    .select("id", { count: "exact", head: true })
+    .eq("visitor_id", visitorId)
+    .in("status", ["reserved", "payment_pending"])
+    .gt("reserved_until", new Date().toISOString());
+  if (error) throw error;
+  return count ?? 0;
+}
+
+export async function countRateEvents(bucketName: string, sinceIso: string) {
+  const client = await db();
+  const { count, error } = await client
+    .from("rate_events")
+    .select("id", { count: "exact", head: true })
+    .eq("bucket", bucketName)
+    .gte("created_at", sinceIso);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+export async function recordRateEvent(bucketName: string) {
+  const client = await db();
+  const cutoff = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+  await client.from("rate_events").delete().lt("created_at", cutoff);
+  const { error } = await client.from("rate_events").insert({ bucket: bucketName });
+  if (error) throw error;
+}
+
+export async function listPlotsByBuyerEmail(email: string) {
+  const client = await db();
+  const { data, error } = await client
+    .from("plots")
+    .select(PUBLIC_COLUMNS)
+    .eq("status", "active")
+    .eq("buyer_email", email.trim().toLowerCase());
+  if (error) throw error;
+  return ((data ?? []) as PublicPlotRow[]).map(fromPublicRow);
+}
+
+export async function getPlotByEditTokenHash(hash: string) {
+  const client = await db();
+  const { data, error } = await client
+    .from("plots")
+    .select(PUBLIC_COLUMNS)
+    .eq("edit_token_hash", hash)
+    .eq("status", "active")
+    .maybeSingle();
+  if (error) throw error;
+  return data ? fromPublicRow(data as PublicPlotRow) : null;
 }
 
 export async function nextPlotId() {

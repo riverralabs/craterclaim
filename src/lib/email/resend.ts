@@ -13,7 +13,7 @@ function fromAddress() {
   return process.env.RESEND_FROM_EMAIL ?? "CraterClaim <onboarding@resend.dev>";
 }
 
-export async function sendLandingLiveEmail(to: string, plot: PlotRecord) {
+export async function sendLandingLiveEmail(to: string, plot: PlotRecord, editUrl?: string) {
   if (!resendConfigured()) return;
   const resend = new Resend(process.env.RESEND_API_KEY);
   const url = `${siteUrl()}/plot/${plot.id}`;
@@ -48,6 +48,16 @@ export async function sendLandingLiveEmail(to: string, plot: PlotRecord) {
             View your landing
           </a>
         </p>
+        ${
+          editUrl
+            ? `<p style="margin:0 0 24px">
+          <a href="${editUrl}" style="color:#e0b84f">Edit your landing</a>
+        </p>
+        <p style="color:#b7bcc6;font-size:13px;line-height:1.6">
+          The edit link is private. Anyone with it can change the logo, website, and social handle. Plot size, place, and name stay as they are.
+        </p>`
+            : ""
+        }
         <p style="color:#b7bcc6;font-size:13px;line-height:1.6">
           Not physical land. Purchases are final. <a href="${url}" style="color:#e0b84f">Open plot page</a>
         </p>
@@ -62,6 +72,40 @@ export async function sendLandingLiveEmail(to: string, plot: PlotRecord) {
           },
         ]
       : undefined,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function sendLandingLinks(
+  to: string,
+  links: { id: string; name: string; url: string; editUrl: string }[],
+) {
+  if (!resendConfigured() || links.length === 0) return;
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const rows = links
+    .map(
+      (link) => `
+        <p style="margin:20px 0 8px;font-size:18px">${link.name.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</p>
+        <p style="margin:0 0 8px"><a href="${link.url}" style="color:#f4f6f8">${link.id}</a></p>
+        <p style="margin:0 0 16px"><a href="${link.editUrl}" style="color:#e0b84f">Edit this landing</a></p>
+      `,
+    )
+    .join("");
+
+  const { error } = await resend.emails.send({
+    from: fromAddress(),
+    to,
+    subject: "Your CraterClaim landings",
+    html: `
+      <div style="background:#05060e;color:#f4f6f8;font-family:Georgia,serif;padding:32px">
+        <p style="letter-spacing:.28em;text-transform:uppercase;color:#8a93b0;font-size:11px">CraterClaim</p>
+        <h1 style="font-size:28px;margin:12px 0 8px">Your landings.</h1>
+        <p style="color:#b7bcc6;line-height:1.6">
+          These edit links are new. Older edit links for the same plots no longer work.
+        </p>
+        ${rows}
+      </div>
+    `,
   });
   if (error) throw new Error(error.message);
 }

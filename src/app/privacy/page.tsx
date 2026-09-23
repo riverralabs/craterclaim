@@ -5,34 +5,33 @@ import { OPERATOR_EMAIL, OPERATOR_MAILTO, OPERATOR_NAME } from "@/lib/legal/oper
 
 export const metadata: Metadata = {
   title: "Privacy",
-  description: "How CraterClaim handles account, plot, and payment data.",
+  description: "How CraterClaim handles plot, email, and payment data.",
 };
 
 export default function PrivacyPage() {
   return (
-    <LegalPage kicker="Legal" title="Privacy." updated="1 September 2026">
+    <LegalPage kicker="Legal" title="Privacy." updated="23 September 2026">
       <p>
         CraterClaim is a public map operated by {OPERATOR_NAME}. What you put on a landing is
-        meant to be seen. This notice explains the smaller set of data we keep so you can sign
-        in, pay, and come back to your plots. Contact:{" "}
+        meant to be seen. This notice explains the smaller set of data we keep so you can pay
+        and come back to your plot. Contact:{" "}
         <a href={OPERATOR_MAILTO}>{OPERATOR_EMAIL}</a>.
       </p>
 
       <h2>Who holds what</h2>
       <p>
-        Google, Apple, or X authenticate you. We receive an account id and, usually, an email
-        address. We do not store your password. Lemon Squeezy processes payment and holds card
-        and billing details. PostHog may record product analytics if enabled. Resend sends the
-        “your landing is live” email if enabled. Sentry records application errors and a sample
-        of performance traces so we can fix outages. Supabase stores plots, logos, and the
-        account id that owns them.
+        Lemon Squeezy processes payment and holds card and billing details. We receive the email
+        address from that checkout. We do not create a password account for buyers. PostHog may
+        record product analytics if enabled. Resend sends the landing card and edit link if
+        enabled. Sentry records application errors and a sample of performance traces so we can
+        fix outages. Supabase stores plots and logos.
       </p>
 
       <h2>What we store</h2>
       <p>
-        Account id, email from the sign-in provider, plots (geometry, name, description, links,
-        logo, status, price, payment id), moderation notes, and basic event logs (claim,
-        payment, suspend). Public plot pages show the landing you published.
+        Checkout email, plots (geometry, name, description, links, logo, status, price, payment
+        id), a private edit secret, moderation notes, and basic event logs (claim, payment,
+        suspend). Public plot pages show the landing you published. They do not show your email.
       </p>
 
       <h2>Why</h2>
@@ -52,8 +51,8 @@ export default function PrivacyPage() {
       <h2>Retention</h2>
       <p>
         Active plots stay while the map exists. Suspended plots stay occupied. You can ask us
-        to close an account; we may keep payment and moderation records as required for
-        disputes, tax, or abuse prevention.
+        to remove your email from our records; we may keep payment and moderation records as
+        required for disputes, tax, or abuse prevention.
       </p>
 
       <h2>Your rights</h2>

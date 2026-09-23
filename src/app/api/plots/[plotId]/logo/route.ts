@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { getPlot } from "@/lib/plots/inventory";
-import { getAuthUser } from "@/lib/auth/session";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { createClient } from "@/lib/supabase/server";
+import { getPlot, getPlotAccess } from "@/lib/plots/inventory";
+import { secretsMatch } from "@/lib/plots/secrets";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   isAllowedLogoType,
   LOGO_TYPES,
@@ -48,22 +47,55 @@ export async function GET(_request: Request, { params }: RouteProps) {
   return NextResponse.json({ error: "Logo not found." }, { status: 404 });
 }
 
-export async function POST(request: Request, { params }: RouteProps) {
-  const { plotId } = await params;
-  const plot = await getPlot(plotId);
-  if (!plot) {
-    return NextResponse.json({ error: "Unknown plot." }, { status: 404 });
-  }
-  if (plot.status === "active" || plot.status === "suspended") {
-    return NextResponse.json({ error: "This plot is already claimed." }, { status: 409 });
+async function storeLogo(plotId: string, bytes: Uint8Array, mimeType: string) {
+  const admin = createAdminClient();
+  const ext = LOGO_TYPES[mimeType];
+  if (!ext) throw new Error("Logo must be a PNG, JPG, WebP, or GIF.");
+  if (!admin) {
+    const saved = await savePlotLogo(plotId, bytes, mimeType);
+    return saved.url;
   }
 
-  const user = await getAuthUser();
-  if (isSupabaseConfigured()) {
-    if (!user) return NextResponse.json({ error: "Sign in to upload a logo." }, { status: 401 });
-    if (plot.ownerId && plot.ownerId !== user.id) {
-      return NextResponse.json({ error: "This reservation belongs to another account." }, { status: 403 });
-    }
+  const path = `plots/${plotId}${ext}`;
+  const { error } = await admin.storage.from("plot-logos").upload(path, bytes, {
+    contentType: mimeType,
+    upsert: true,
+  });
+  if (error) throw new Error(error.message);
+  await admin.storage.from("plot-logos").remove(
+    Object.values(LOGO_TYPES)
+      .filter((other) => other !== ext)
+      .map((other) => `plots/${plotId}${other}`),
+  );
+  const { data } = admin.storage.from("plot-logos").getPublicUrl(path);
+  return `${data.publicUrl}?v=${Date.now()}`;
+}
+
+async function canUpload(plotId: string, request: Request) {
+  const plot = await getPlot(plotId);
+  if (!plot) return { ok: false as const, status: 404, error: "Unknown plot." };
+  const access = await getPlotAccess(plotId);
+  if (!access) return { ok: false as const, status: 404, error: "Unknown plot." };
+
+  const editToken = request.headers.get("x-edit-token");
+  if (editToken && plot.status === "active" && secretsMatch(editToken, access.editTokenHash)) {
+    return { ok: true as const };
+  }
+
+  const claimToken = request.headers.get("x-claim-token");
+  const open = plot.status === "reserved" || plot.status === "payment_pending";
+  if (claimToken && open && secretsMatch(claimToken, access.claimTokenHash)) {
+    return { ok: true as const };
+  }
+
+  return { ok: false as const, status: 403, error: "This upload is not allowed." };
+}
+
+export async function POST(request: Request, { params }: RouteProps) {
+  const { plotId } = await params;
+  const allowed = await canUpload(plotId, request);
+  if (!allowed.ok) {
+    return NextResponse.json({ error: allowed.error }, { status: allowed.status });
   }
 
   const form = await request.formData();
@@ -78,23 +110,14 @@ export async function POST(request: Request, { params }: RouteProps) {
     return NextResponse.json({ error: "Logo must be 5 MB or smaller." }, { status: 400 });
   }
 
-  if (isSupabaseConfigured() && user) {
-    const supabase = await createClient();
-    const ext = LOGO_TYPES[file.type];
-    const path = `${user.id}/${plotId}${ext}`;
+  try {
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const { error } = await supabase.storage.from("plot-logos").upload(path, bytes, {
-      contentType: file.type,
-      upsert: true,
-    });
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-    const { data } = supabase.storage.from("plot-logos").getPublicUrl(path);
-    return NextResponse.json({ url: data.publicUrl });
+    const url = await storeLogo(plotId, bytes, file.type);
+    return NextResponse.json({ url });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Could not upload the logo." },
+      { status: 400 },
+    );
   }
-
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const saved = await savePlotLogo(plotId, bytes, file.type);
-  return NextResponse.json({ url: saved.url });
 }
