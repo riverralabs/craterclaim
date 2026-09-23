@@ -1,4 +1,4 @@
-import { OPERATOR_EMAIL, OPERATOR_NAME } from "@/lib/legal/operator";
+import { OPERATOR_EMAIL } from "@/lib/legal/operator";
 import { siteOrigin } from "@/lib/seo/site";
 
 export function SiteJsonLd() {
@@ -9,7 +9,6 @@ export function SiteJsonLd() {
       {
         "@type": "Organization",
         name: "CraterClaim",
-        legalName: OPERATOR_NAME,
         url: site,
         email: OPERATOR_EMAIL,
         logo: `${site}/icon.png`,

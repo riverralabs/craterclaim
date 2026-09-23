@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage } from "@/components/legal/LegalPage";
-import { OPERATOR_EMAIL, OPERATOR_MAILTO, OPERATOR_NAME } from "@/lib/legal/operator";
+import { OPERATOR_EMAIL, OPERATOR_MAILTO } from "@/lib/legal/operator";
 
 export const metadata: Metadata = {
   title: "Privacy",
@@ -12,7 +12,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage kicker="Legal" title="Privacy." updated="23 September 2026">
       <p>
-        CraterClaim is a public map operated by {OPERATOR_NAME}. What you put on a landing is
+        CraterClaim is a public map. What you put on a landing is
         meant to be seen. This notice explains the smaller set of data we keep so you can pay
         and come back to your plot. Contact:{" "}
         <a href={OPERATOR_MAILTO}>{OPERATOR_EMAIL}</a>.

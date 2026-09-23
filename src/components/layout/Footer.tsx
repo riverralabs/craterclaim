@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { OPERATOR_EMAIL, OPERATOR_MAILTO, OPERATOR_NAME } from "@/lib/legal/operator";
+import { OPERATOR_EMAIL, OPERATOR_MAILTO } from "@/lib/legal/operator";
 
 export function Footer() {
   return (
@@ -12,7 +12,7 @@ export function Footer() {
             and not a promise of traffic or rankings.
           </p>
           <p className="mt-2 text-xs">
-            {OPERATOR_NAME} · <a href={OPERATOR_MAILTO} className="hover:text-electric-white">{OPERATOR_EMAIL}</a>
+            <a href={OPERATOR_MAILTO} className="hover:text-electric-white">{OPERATOR_EMAIL}</a>
           </p>
         </div>
         <div className="flex flex-wrap gap-x-5 gap-y-2">

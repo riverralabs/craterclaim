@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage } from "@/components/legal/LegalPage";
-import { OPERATOR_EMAIL, OPERATOR_MAILTO, OPERATOR_NAME } from "@/lib/legal/operator";
+import { OPERATOR_EMAIL, OPERATOR_MAILTO } from "@/lib/legal/operator";
 
 export const metadata: Metadata = {
   title: "Refunds",
@@ -47,7 +47,7 @@ export default function RefundsPage() {
       <h2>If the statute still requires it</h2>
       <p>
         If a non-waivable law still requires a refund after the above, email{" "}
-        {OPERATOR_NAME} at <a href={OPERATOR_MAILTO}>{OPERATOR_EMAIL}</a> with the plot ID and
+        us at <a href={OPERATOR_MAILTO}>{OPERATOR_EMAIL}</a> with the plot ID and
         Lemon Squeezy receipt. That is the only path. See the <Link href="/terms">terms</Link>.
       </p>
     </LegalPage>
