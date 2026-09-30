@@ -2,15 +2,19 @@ import { createClient as createAnonClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/config";
 import type { PlotAccess } from "@/lib/plots/access";
-import type { PlotRecord, PlotStatus, Zone } from "@/types";
+import { plotBody } from "@/lib/worlds";
+import type { BodyId, PlotRecord, PlotStatus, Zone } from "@/types";
 
 const RESERVATION_MS = 15 * 60 * 1000;
 
 const PUBLIC_COLUMNS =
-  "id,x,y,width,height,pixel_count,center_latitude,center_longitude,lunar_feature,zone,status,quoted_price,price_paid,claim_date,reserved_until,name,description,website_url,social_handle,logo_url,created_at";
+  "id,body,x,y,width,height,pixel_count,center_latitude,center_longitude,lunar_feature,zone,status,quoted_price,price_paid,claim_date,reserved_until,name,description,website_url,social_handle,logo_url,created_at";
+
+const PUBLIC_COLUMNS_LEGACY = PUBLIC_COLUMNS.replace("id,body,", "id,");
 
 type PlotRow = {
   id: string;
+  body?: string | null;
   owner_id: string | null;
   x: number;
   y: number;
@@ -52,6 +56,7 @@ function fromPublicRow(row: PublicPlotRow): PlotRecord {
 function fromRow(row: PlotRow): PlotRecord {
   return {
     id: row.id,
+    body: plotBody({ body: row.body }),
     ownerId: row.owner_id,
     x: row.x,
     y: row.y,
@@ -79,8 +84,23 @@ function fromRow(row: PlotRow): PlotRecord {
   };
 }
 
-function toRow(plot: PlotRecord) {
-  return {
+function missingBodyColumn(error: { message?: string } | null) {
+  return Boolean(error?.message && /body/i.test(error.message));
+}
+
+type PublicQuery = PromiseLike<{ data: unknown; error: { message: string } | null }>;
+
+async function readPublic(run: (columns: string) => PublicQuery) {
+  const first = await run(PUBLIC_COLUMNS);
+  if (!first.error) return first.data;
+  if (!missingBodyColumn(first.error)) throw first.error;
+  const second = await run(PUBLIC_COLUMNS_LEGACY);
+  if (second.error) throw second.error;
+  return second.data;
+}
+
+function toRow(plot: PlotRecord, includeBody = true) {
+  const row: Record<string, unknown> = {
     id: plot.id,
     owner_id: plot.ownerId,
     x: plot.x,
@@ -106,6 +126,8 @@ function toRow(plot: PlotRecord) {
     payment_id: plot.paymentId ?? null,
     moderation_notes: plot.moderationNotes ?? null,
   };
+  if (includeBody) row.body = plotBody(plot) satisfies BodyId;
+  return row;
 }
 
 async function db() {
@@ -124,23 +146,16 @@ function publicDb() {
 }
 
 export async function listPublicPlots() {
-  const { data, error } = await publicDb()
-    .from("plots")
-    .select(PUBLIC_COLUMNS)
-    .eq("status", "active")
-    .order("claim_date", { ascending: false });
-  if (error) throw error;
+  const data = await readPublic((columns) =>
+    publicDb().from("plots").select(columns).eq("status", "active").order("claim_date", { ascending: false }),
+  );
   return ((data ?? []) as PublicPlotRow[]).map(fromPublicRow);
 }
 
 export async function getPublicPlot(id: string) {
-  const { data, error } = await publicDb()
-    .from("plots")
-    .select(PUBLIC_COLUMNS)
-    .eq("id", id)
-    .eq("status", "active")
-    .maybeSingle();
-  if (error) throw error;
+  const data = await readPublic((columns) =>
+    publicDb().from("plots").select(columns).eq("id", id).eq("status", "active").maybeSingle(),
+  );
   return data ? fromPublicRow(data as PublicPlotRow) : null;
 }
 
@@ -202,9 +217,12 @@ export async function getPlot(id: string) {
 
 export async function upsertPlot(plot: PlotRecord) {
   const client = await db();
-  const { data, error } = await client.from("plots").upsert(toRow(plot)).select("*").single();
-  if (error) throw error;
-  return fromRow(data as PlotRow);
+  const first = await client.from("plots").upsert(toRow(plot)).select("*").single();
+  if (!first.error) return fromRow(first.data as PlotRow);
+  if (!missingBodyColumn(first.error) || plotBody(plot) !== "moon") throw first.error;
+  const retry = await client.from("plots").upsert(toRow(plot, false)).select("*").single();
+  if (retry.error) throw retry.error;
+  return fromRow(retry.data as PlotRow);
 }
 
 function accessFromRow(row: {
@@ -283,24 +301,17 @@ export async function recordRateEvent(bucketName: string) {
 
 export async function listPlotsByBuyerEmail(email: string) {
   const client = await db();
-  const { data, error } = await client
-    .from("plots")
-    .select(PUBLIC_COLUMNS)
-    .eq("status", "active")
-    .eq("buyer_email", email.trim().toLowerCase());
-  if (error) throw error;
+  const data = await readPublic((columns) =>
+    client.from("plots").select(columns).eq("status", "active").eq("buyer_email", email.trim().toLowerCase()),
+  );
   return ((data ?? []) as PublicPlotRow[]).map(fromPublicRow);
 }
 
 export async function getPlotByEditTokenHash(hash: string) {
   const client = await db();
-  const { data, error } = await client
-    .from("plots")
-    .select(PUBLIC_COLUMNS)
-    .eq("edit_token_hash", hash)
-    .eq("status", "active")
-    .maybeSingle();
-  if (error) throw error;
+  const data = await readPublic((columns) =>
+    client.from("plots").select(columns).eq("edit_token_hash", hash).eq("status", "active").maybeSingle(),
+  );
   return data ? fromPublicRow(data as PublicPlotRow) : null;
 }
 

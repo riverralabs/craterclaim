@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { GRID_HEIGHT, GRID_WIDTH, uvToPixel } from "@/lib/moon/coordinates";
 import { rectFromCorners } from "@/lib/moon/selection";
 import { useMoonStore } from "@/lib/store/moon-store";
+import { getWorld } from "@/lib/worlds";
 import { findOverlappingPlot } from "@/lib/plots/overlap";
 import { plotHoverPointer } from "@/components/moon/PlotHoverCard";
 
@@ -25,6 +26,7 @@ export function MoonMap2D() {
   const setHoverPlot = useMoonStore((state) => state.setHoverPlot);
   const markUserInteracted = useMoonStore((state) => state.markUserInteracted);
   const enterExploreMode = useMoonStore((state) => state.enterExploreMode);
+  const world = getWorld(useMoonStore((state) => state.body));
 
   const active = plots.filter((plot) => plot.status === "active");
   const overlap = selection ? Boolean(findOverlappingPlot(selection, active)) : false;
@@ -47,12 +49,12 @@ export function MoonMap2D() {
       <div className={`relative flex flex-1 items-center justify-center px-3 pb-28 ${selectionMode ? "cursor-crosshair" : "cursor-grab"}`}>
         <div className="relative max-h-full max-w-full">
           <picture>
-            <source srcSet="/textures/moon/color-2k.webp" type="image/webp" />
+            <source srcSet={world.hiResUrl} type="image/webp" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               ref={imgRef}
-              src="/textures/moon/color-2k.jpg"
-              alt="Equirectangular Moon map"
+              src={world.hiResJpg}
+              alt={world.mapAlt}
               className="max-h-[min(70dvh,720px)] w-full max-w-4xl object-contain"
               draggable={false}
               onPointerDown={(event) => {

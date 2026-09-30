@@ -5,6 +5,7 @@ import Link from "next/link";
 import { PlotCard } from "@/components/plot/PlotCard";
 import { Button } from "@/components/ui/button";
 import { useMoonStore } from "@/lib/store/moon-store";
+import { plotBody } from "@/lib/worlds";
 import type { PlotRecord } from "@/types";
 
 type DirectoryMode = "recent" | "leaderboard";
@@ -16,9 +17,9 @@ export function PlotDirectory({
   initialPlots: PlotRecord[];
   mode: DirectoryMode;
 }) {
-  const storePlots = useMoonStore((state) => state.plots);
+  const archive = useMoonStore((state) => state.archive);
   const hydratePlots = useMoonStore((state) => state.hydratePlots);
-  const plots = storePlots.length > 0 ? storePlots : initialPlots;
+  const plots = archive.length > 0 ? archive : initialPlots;
 
   useEffect(() => {
     hydratePlots(initialPlots);
@@ -52,13 +53,18 @@ export function PlotDirectory({
         <p className="mt-4 leading-relaxed text-lunar-silver">
           Counts stay at zero until someone claims a digital plot. Nothing is faked.
         </p>
-        <Button
-          asChild
-          size="lg"
-          className="mt-8 min-h-11 cursor-pointer bg-electric-white text-space hover:bg-electric-white/90"
-        >
-          <Link href="/">Explore the Moon</Link>
-        </Button>
+        <div className="mt-8 flex flex-wrap gap-2">
+          <Button
+            asChild
+            size="lg"
+            className="min-h-11 cursor-pointer bg-electric-white text-space hover:bg-electric-white/90"
+          >
+            <Link href="/">Explore the Moon</Link>
+          </Button>
+          <Button asChild size="lg" variant="outline" className="min-h-11 cursor-pointer border-white/15">
+            <Link href="/mars">Explore Mars</Link>
+          </Button>
+        </div>
       </div>
     );
   }
@@ -79,6 +85,7 @@ export function PlotDirectory({
               longitude={plot.centerLongitude}
               claimDate={plot.claimDate ?? plot.createdAt}
               zone={plot.zone}
+              body={plotBody(plot)}
               logoUrl={plot.logoUrl}
             />
           ))}
@@ -114,6 +121,7 @@ function Board({ title, plots }: { title: string; plots: PlotRecord[] }) {
             longitude={plot.centerLongitude}
             claimDate={plot.claimDate ?? plot.createdAt}
             zone={plot.zone}
+            body={plotBody(plot)}
             logoUrl={plot.logoUrl}
           />
         ))}

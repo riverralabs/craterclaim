@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import type { PlotRecord } from "@/types";
+import { getWorld, plotBody } from "@/lib/worlds";
 
 export function resendConfigured() {
   return Boolean(process.env.RESEND_API_KEY);
@@ -40,7 +41,7 @@ export async function sendLandingLiveEmail(to: string, plot: PlotRecord, editUrl
         <p style="letter-spacing:.28em;text-transform:uppercase;color:#8a93b0;font-size:11px">CraterClaim</p>
         <h1 style="font-size:28px;margin:12px 0 8px">Your landing is live.</h1>
         <p style="color:#b7bcc6;line-height:1.6">
-          ${name} is on the public Moon. Digital plot ${plot.id} · ${plot.width}×${plot.height} · ${plot.lunarFeature}.
+          ${name} is on the public ${getWorld(plotBody(plot)).name}. Digital plot ${plot.id} · ${plot.width}×${plot.height} · ${plot.lunarFeature}.
         </p>
         ${cardBlock}
         <p style="margin:24px 0">

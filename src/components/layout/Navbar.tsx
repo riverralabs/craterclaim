@@ -17,8 +17,12 @@ import { useClaimSelect } from "@/hooks/useClaimSelect";
 import { cn } from "@/lib/utils";
 import { useMoonStore } from "@/lib/store/moon-store";
 
+const WORLD_LINKS = [
+  { href: "/", label: "Moon" },
+  { href: "/mars", label: "Mars" },
+] as const;
+
 const NAV_LINKS = [
-  { href: "/", label: "Explore" },
   { href: "/how-it-works", label: "How It Works" },
   { href: "/search", label: "Search" },
   { href: "/leaderboard", label: "Leaderboard" },
@@ -47,6 +51,29 @@ export function Navbar() {
           </span>
         </Link>
 
+        <nav className="flex items-center gap-0.5" aria-label="Worlds">
+          {WORLD_LINKS.map((link) => {
+            const active = pathname === link.href;
+            const className = cn(
+              "inline-flex min-h-11 cursor-pointer items-center rounded-lg px-3 text-sm transition-colors duration-200",
+              active
+                ? "text-electric-white"
+                : "text-lunar-silver hover:text-electric-white",
+            );
+            if (active) {
+              return (
+                <button key={link.href} type="button" className={className} onClick={enterExploreMode}>
+                  {link.label}
+                </button>
+              );
+            }
+            return (
+              <Link key={link.href} href={link.href} className={className}>
+                {link.label}
+              </Link>
+            );
+          })}
+        </nav>
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
           {NAV_LINKS.map((link) => {
             const active = pathname === link.href;
@@ -56,19 +83,6 @@ export function Navbar() {
                 ? "text-electric-white"
                 : "text-lunar-silver hover:text-electric-white",
             );
-
-            if (link.href === "/" && pathname === "/") {
-              return (
-                <button
-                  key={link.href}
-                  type="button"
-                  className={className}
-                  onClick={enterExploreMode}
-                >
-                  {link.label}
-                </button>
-              );
-            }
 
             return (
               <Link key={link.href} href={link.href} className={className}>
@@ -112,12 +126,12 @@ export function Navbar() {
               <SheetHeader>
                 <SheetTitle>CraterClaim</SheetTitle>
                 <SheetDescription className="text-lunar-silver">
-                  Claim your place on the Moon.
+                  Claim your place on the Moon or Mars.
                 </SheetDescription>
               </SheetHeader>
               <nav className="flex flex-col gap-1 px-4 pb-6" aria-label="Mobile">
-                {NAV_LINKS.map((link) => {
-                  if (link.href === "/" && pathname === "/") {
+                {WORLD_LINKS.map((link) => {
+                  if (pathname === link.href) {
                     return (
                       <button
                         key={link.href}
@@ -129,7 +143,6 @@ export function Navbar() {
                       </button>
                     );
                   }
-
                   return (
                     <Link
                       key={link.href}
@@ -140,6 +153,15 @@ export function Navbar() {
                     </Link>
                   );
                 })}
+                {NAV_LINKS.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="flex min-h-11 cursor-pointer items-center rounded-lg px-2 text-base text-electric-white transition-colors duration-200 hover:bg-white/5"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
                 <Button
                   size="lg"
                   className="mt-3 min-h-11 cursor-pointer bg-electric-white text-space hover:bg-electric-white/90"

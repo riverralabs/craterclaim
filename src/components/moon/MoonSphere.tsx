@@ -15,11 +15,21 @@ type MoonSphereProps = {
   segments: number;
   colorUrl: string;
   hiResUrl?: string;
+  yaw?: number;
+  tint?: string;
   onReady?: () => void;
   children?: React.ReactNode;
 };
 
-export function MoonSphere({ segments, colorUrl, hiResUrl, onReady, children }: MoonSphereProps) {
+export function MoonSphere({
+  segments,
+  colorUrl,
+  hiResUrl,
+  yaw = NEAR_SIDE_YAW,
+  tint = "#f0ece6",
+  onReady,
+  children,
+}: MoonSphereProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const oriented = useRef(false);
   const landingStarted = useRef(false);
@@ -108,9 +118,9 @@ export function MoonSphere({ segments, colorUrl, hiResUrl, onReady, children }: 
     const mesh = meshRef.current;
     if (!mesh || viewResetAt === 0) return;
     mesh.quaternion.identity();
-    mesh.rotation.set(0, NEAR_SIDE_YAW, 0);
+    mesh.rotation.set(0, yaw, 0);
     oriented.current = true;
-  }, [viewResetAt]);
+  }, [viewResetAt, yaw]);
 
   useFrame((_, delta) => {
     const mesh = meshRef.current;
@@ -157,7 +167,7 @@ export function MoonSphere({ segments, colorUrl, hiResUrl, onReady, children }: 
     landingSettled.current = false;
 
     if (!oriented.current) {
-      mesh.rotation.y = NEAR_SIDE_YAW;
+      mesh.rotation.y = yaw;
       oriented.current = true;
     }
     if (autoRotate) {
@@ -171,7 +181,7 @@ export function MoonSphere({ segments, colorUrl, hiResUrl, onReady, children }: 
       <meshLambertMaterial
         ref={materialRef}
         map={map}
-        color="#f0ece6"
+        color={tint}
         emissive="#ffffff"
         emissiveMap={map}
         emissiveIntensity={0.18}

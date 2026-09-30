@@ -8,7 +8,7 @@ export function Footer() {
         <div>
           <p className="font-heading text-base text-electric-white">CraterClaim</p>
           <p className="mt-1 max-w-md leading-relaxed">
-            Digital lunar plots on a public Moon map. Not physical land, not advertising,
+            Digital plots on public Moon and Mars maps. Not physical land, not advertising,
             and not a promise of traffic or rankings.
           </p>
           <p className="mt-2 text-xs">
@@ -16,6 +16,9 @@ export function Footer() {
           </p>
         </div>
         <div className="flex flex-wrap gap-x-5 gap-y-2">
+          <Link href="/mars" className="cursor-pointer hover:text-electric-white">
+            Mars
+          </Link>
           <Link href="/how-it-works" className="cursor-pointer hover:text-electric-white">
             How It Works
           </Link>

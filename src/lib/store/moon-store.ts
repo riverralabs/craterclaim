@@ -3,16 +3,20 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { trackEvent } from "@/lib/analytics";
 import { mergePlots, readLocalPlots, writeLocalPlots } from "@/lib/plots/local";
 import { migratePlotsToCurrentGrid } from "@/lib/moon/grid";
-import { LUNAR_FEATURES } from "@/lib/moon/regions";
+import { getWorld, plotBody, withBody, type BodyId } from "@/lib/worlds";
 import type { LandingMode, LunarFeature, PlotRecord, PlotSelection } from "@/types";
 
 interface MoonState {
+  body: BodyId;
   isInteracting: boolean;
   hasUserInteracted: boolean;
   isExploring: boolean;
   selectionMode: boolean;
   selection: PlotSelection | null;
+  /** Plots on the active globe. */
   plots: PlotRecord[];
+  /** Moon and Mars plots together, including ones not on the active globe. */
+  archive: PlotRecord[];
   features: LunarFeature[];
   landingPlotId: string | null;
   hoverPlotId: string | null;
@@ -20,6 +24,7 @@ interface MoonState {
   landingCinematic: boolean;
   landingAsOwner: boolean;
   viewResetAt: number;
+  setBody: (body: BodyId) => void;
   setInteracting: (v: boolean) => void;
   setHoverPlot: (plotId: string | null) => void;
   markUserInteracted: () => void;
@@ -27,7 +32,7 @@ interface MoonState {
   enterSelectMode: () => void;
   exitSelectMode: () => void;
   setSelection: (selection: PlotSelection | null) => void;
-  hydratePlots: (plots: PlotRecord[]) => void;
+  hydratePlots: (plots: PlotRecord[], fallbackBody?: BodyId) => void;
   hydrateFeatures: (features: LunarFeature[]) => void;
   rememberPlot: (plot: PlotRecord) => void;
   startLanding: (plotId: string, cinematic?: boolean) => void;
@@ -40,19 +45,39 @@ interface MoonState {
 export const useMoonStore = create<MoonState>()(
   persist(
     (set, get) => ({
+      body: "moon",
       isInteracting: false,
       hasUserInteracted: false,
       isExploring: true,
       selectionMode: false,
       selection: null,
       plots: [],
-      features: LUNAR_FEATURES,
+      archive: [],
+      features: getWorld("moon").features,
       landingPlotId: null,
       hoverPlotId: null,
       landingMode: "idle",
       landingCinematic: false,
       landingAsOwner: false,
       viewResetAt: 0,
+      setBody: (body) => {
+        if (get().body === body) return;
+        const archive = get().archive.length ? get().archive : readLocalPlots().map((plot) => withBody(plot));
+        set({
+          body,
+          features: getWorld(body).features,
+          archive,
+          plots: archive.filter((plot) => plotBody(plot) === body),
+          selection: null,
+          selectionMode: false,
+          landingPlotId: null,
+          landingMode: "idle",
+          landingCinematic: false,
+          landingAsOwner: false,
+          hoverPlotId: null,
+          viewResetAt: get().viewResetAt + 1,
+        });
+      },
       setInteracting: (v) => set({ isInteracting: v }),
       setHoverPlot: (plotId) => {
         if (get().hoverPlotId === plotId) return;
@@ -81,22 +106,27 @@ export const useMoonStore = create<MoonState>()(
       },
       exitSelectMode: () => set({ selectionMode: false, selection: null }),
       setSelection: (selection) => set({ selection }),
-      hydratePlots: (plots) => {
-        const merged = mergePlots(
-          migratePlotsToCurrentGrid(plots),
-          mergePlots(get().plots, readLocalPlots()),
-        );
+      hydratePlots: (plots, fallbackBody) => {
+        const body = get().body;
+        const incoming = migratePlotsToCurrentGrid(plots).map((plot) => withBody(plot, fallbackBody ?? "moon"));
+        const merged = mergePlots(incoming, mergePlots(get().archive, readLocalPlots().map((plot) => withBody(plot))));
         writeLocalPlots(merged);
-        set({ plots: merged });
+        set({
+          archive: merged,
+          plots: merged.filter((plot) => plotBody(plot) === body),
+        });
       },
       hydrateFeatures: (features) => set({ features }),
       rememberPlot: (plot) => {
-        const merged = mergePlots(
-          [migratePlotsToCurrentGrid([plot])[0]],
-          mergePlots(get().plots, readLocalPlots()),
-        );
+        const tagged = withBody(migratePlotsToCurrentGrid([plot])[0], plot.body ?? get().body);
+        const merged = mergePlots([tagged], mergePlots(get().archive, readLocalPlots().map((item) => withBody(item))));
         writeLocalPlots(merged);
-        set({ plots: merged, selection: null, selectionMode: false });
+        set({
+          archive: merged,
+          plots: merged.filter((item) => plotBody(item) === get().body),
+          selection: null,
+          selectionMode: false,
+        });
       },
       startLanding: (plotId, cinematic = true) =>
         set({
@@ -129,7 +159,7 @@ export const useMoonStore = create<MoonState>()(
     {
       name: "craterclaim-selection",
       storage: createJSONStorage(() => sessionStorage),
-      partialize: (state) => ({ selection: state.selection }),
+      partialize: (state) => ({ selection: state.selection, body: state.body }),
       skipHydration: true,
     },
   ),

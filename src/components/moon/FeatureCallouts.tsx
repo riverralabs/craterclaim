@@ -25,6 +25,9 @@ export type CalloutPin = {
 function captionFor(feature: LunarFeature) {
   if (feature.type === "pole") return "Rare opportunity";
   if (feature.type === "crater") return "Landmark";
+  if (feature.type === "volcano") return "Shield volcano";
+  if (feature.type === "canyon") return "Canyon system";
+  if (feature.type === "basin") return "Impact basin";
   return "Premium zone";
 }
 
@@ -153,7 +156,9 @@ function layoutPins(
 
   for (const pin of facing) {
     const base =
-      pin.id === "south-pole" ? Math.PI / 2 : Math.atan2(pin.y - cy, pin.x - cx);
+      pin.id === "south-pole" || pin.id === "planum-australe"
+        ? Math.PI / 2
+        : Math.atan2(pin.y - cy, pin.x - cx);
     let chosen: { x: number; y: number } | null = null;
 
     for (let step = 0; step <= 18; step += 1) {

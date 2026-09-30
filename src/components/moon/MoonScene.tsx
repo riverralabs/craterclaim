@@ -16,6 +16,7 @@ import { Starfield } from "@/components/moon/Starfield";
 import { MoonMap2D } from "@/components/moon/MoonMap2D";
 import { useMoonInteraction } from "@/hooks/useMoonInteraction";
 import { useMoonStore } from "@/lib/store/moon-store";
+import { getWorld } from "@/lib/worlds";
 
 function hasWebGL() {
   try {
@@ -68,6 +69,7 @@ function MoonExperience({
   onReady: () => void;
 }) {
   const segments = isMobile ? 40 : 72;
+  const world = getWorld(useMoonStore((state) => state.body));
 
   return (
     <>
@@ -75,8 +77,10 @@ function MoonExperience({
       <MoonLights />
       <MoonSphere
         segments={segments}
-        colorUrl="/textures/moon/color.webp"
-        hiResUrl={!isMobile && detail ? "/textures/moon/color-2k.webp" : undefined}
+        colorUrl={world.colorUrl}
+        hiResUrl={!isMobile && detail ? world.hiResUrl : undefined}
+        yaw={world.yaw}
+        tint={world.tint}
         onReady={onReady}
       >
         <OwnershipLayer segments={segments} />
