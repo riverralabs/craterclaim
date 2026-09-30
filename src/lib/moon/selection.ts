@@ -1,7 +1,7 @@
 import { GRID_HEIGHT, GRID_WIDTH, pixelToLatLng } from "@/lib/moon/coordinates";
 import { calculatePrice, MIN_PLOT_SIZE } from "@/lib/moon/pricing";
-import { featureCovering, LUNAR_FEATURES, nearestFeature } from "@/lib/moon/regions";
-import type { LunarFeature, PlotSelection, Zone } from "@/types";
+import { classifyRect, LUNAR_FEATURES } from "@/lib/moon/regions";
+import type { LunarFeature, PlotSelection } from "@/types";
 
 export const SNAP = MIN_PLOT_SIZE;
 
@@ -50,9 +50,7 @@ export function rectFromCorners(
   const height = bottom - top;
   const pixelCount = width * height;
   const center = pixelToLatLng(left + width / 2, top + height / 2);
-  const covering = featureCovering(center.lat, center.lng, features);
-  const feature = covering ?? nearestFeature(center.lat, center.lng, features);
-  const zone: Zone = covering?.isPremium ? "premium" : "standard";
+  const { feature, zone } = classifyRect(left, top, width, height, features);
 
   return {
     x: left,

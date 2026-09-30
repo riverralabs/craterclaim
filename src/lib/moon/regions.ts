@@ -1,4 +1,5 @@
-import type { LunarFeature } from "@/types";
+import { GRID_HEIGHT, GRID_WIDTH, pixelToLatLng, uvToLatLng } from "@/lib/moon/coordinates";
+import type { LunarFeature, Zone } from "@/types";
 
 /**
  * Well-known V1 destinations. Every named site is premium and glows gold.
@@ -185,4 +186,79 @@ export function featureCovering(lat: number, lng: number, features: LunarFeature
 
 export function getFeatureById(id: string) {
   return LUNAR_FEATURES.find((feature) => feature.id === id);
+}
+
+/** Shortest signed longitude delta, in degrees, wrapped to (−180, 180]. */
+function wrapLng(delta: number) {
+  return ((((delta + 180) % 360) + 360) % 360) - 180;
+}
+
+/**
+ * True when the feature's spherical disk touches the plot's lat/lng rectangle.
+ * The rectangle is bounded by meridians and parallels and does not cross the
+ * antimeridian; longitude is still compared on a circle so a disk near ±180
+ * can meet a plot on the other side of the seam.
+ */
+function diskHitsRect(
+  feature: LunarFeature,
+  latMin: number,
+  latMax: number,
+  lngMin: number,
+  lngMax: number,
+) {
+  const lat = Math.min(latMax, Math.max(latMin, feature.centerLat));
+  const mid = (lngMin + lngMax) / 2;
+  const lng = Math.min(lngMax, Math.max(lngMin, mid + wrapLng(feature.centerLng - mid)));
+  return angularDistanceDeg(feature.centerLat, feature.centerLng, lat, lng) <= feature.radiusDeg;
+}
+
+/**
+ * One zone for the whole plot. Premium when the center sits in a premium disk
+ * or any part of the rectangle overlaps one — a large claim that covers a
+ * premium site is premium even if its center is in open ground.
+ * The name is the smallest premium disk covering the center, otherwise the
+ * overlapping premium closest to the center, otherwise the nearest feature.
+ */
+export function classifyRect(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  features: LunarFeature[] = LUNAR_FEATURES,
+): { feature: LunarFeature; zone: Zone } {
+  const center = pixelToLatLng(x + width / 2, y + height / 2);
+  const covering = featureCovering(center.lat, center.lng, features);
+
+  const latMax = uvToLatLng(0, y / GRID_HEIGHT).lat;
+  const latMin = uvToLatLng(0, (y + height) / GRID_HEIGHT).lat;
+  const lngMin = uvToLatLng(x / GRID_WIDTH, 0).lng;
+  const lngMax = uvToLatLng((x + width) / GRID_WIDTH, 0).lng;
+
+  let closestPremium: LunarFeature | undefined;
+  let closestDistance = Number.POSITIVE_INFINITY;
+
+  for (const feature of features) {
+    if (!feature.isPremium) continue;
+    if (!diskHitsRect(feature, latMin, latMax, lngMin, lngMax)) continue;
+    const distance = angularDistanceDeg(center.lat, center.lng, feature.centerLat, feature.centerLng);
+    const closer =
+      distance < closestDistance ||
+      (distance === closestDistance && closestPremium !== undefined && feature.radiusDeg < closestPremium.radiusDeg);
+    if (!closestPremium || closer) {
+      closestPremium = feature;
+      closestDistance = distance;
+    }
+  }
+
+  if (covering?.isPremium) {
+    return { feature: covering, zone: "premium" };
+  }
+  if (closestPremium) {
+    return { feature: closestPremium, zone: "premium" };
+  }
+
+  return {
+    feature: covering ?? nearestFeature(center.lat, center.lng, features),
+    zone: "standard",
+  };
 }
