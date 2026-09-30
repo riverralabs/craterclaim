@@ -1,6 +1,6 @@
 import { GRID_HEIGHT, GRID_WIDTH, pixelToLatLng } from "@/lib/moon/coordinates";
 import { calculatePrice, MIN_PLOT_SIZE } from "@/lib/moon/pricing";
-import { featureCovering, LUNAR_FEATURES, nearestFeature } from "@/lib/moon/regions";
+import { classifyRect, LUNAR_FEATURES } from "@/lib/moon/regions";
 import { SNAP } from "@/lib/moon/selection";
 import type { LunarFeature, PlotSelection } from "@/types";
 
@@ -37,9 +37,7 @@ export function quoteGeometry(
 
   const pixelCount = width * height;
   const center = pixelToLatLng(x + width / 2, y + height / 2);
-  const covering = featureCovering(center.lat, center.lng, features);
-  const feature = covering ?? nearestFeature(center.lat, center.lng, features);
-  const zone = covering?.isPremium ? "premium" : "standard";
+  const { feature, zone } = classifyRect(x, y, width, height, features);
 
   return {
     x,
