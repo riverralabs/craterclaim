@@ -411,7 +411,7 @@ export function ClaimForm() {
         ) : null}
 
         <LegalCheck checked={novelty} onChange={setNovelty}>
-          I understand this is a digital novelty plot, not physical lunar land.
+          I understand this is a digital novelty plot, not physical land.
         </LegalCheck>
 
         <LegalCheck checked={consent} onChange={setConsent}>
@@ -455,7 +455,7 @@ export function ClaimForm() {
                 : `Pay ${formatUsd(preview?.quotedPrice ?? selection.price)}`}
           </Button>
           <Button asChild size="lg" variant="outline" className="min-h-11 cursor-pointer border-white/15">
-            <Link href="/">Back to Moon</Link>
+            <Link href={worldPath(body)}>Back to {world.name}</Link>
           </Button>
         </div>
       </form>
