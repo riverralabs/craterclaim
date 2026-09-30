@@ -20,6 +20,7 @@ export async function createLemonCheckout(input: {
   email?: string | null;
   priceUsd: number;
   redirectUrl: string;
+  worldName?: string;
 }) {
   const storeId = process.env.LEMON_SQUEEZY_STORE_ID!;
   const variantId = process.env.LEMON_SQUEEZY_VARIANT_ID!;
@@ -53,9 +54,9 @@ export async function createLemonCheckout(input: {
           },
           product_options: {
             name: `CraterClaim ${input.plotId}`,
-            description: `Digital lunar plot ${input.plotId}. Not physical land.`,
+            description: `Digital plot ${input.plotId} on ${input.worldName ?? "the Moon"}. Not physical land.`,
             redirect_url: input.redirectUrl,
-            receipt_thank_you_note: "Your landing is on the Moon.",
+            receipt_thank_you_note: `Your landing is on ${input.worldName ?? "the Moon"}.`,
           },
         },
         relationships: {

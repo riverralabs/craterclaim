@@ -26,7 +26,7 @@ export function quoteGeometry(
     throw new QuoteError("Plot coordinates must be integers.");
   }
   if (x < 0 || y < 0 || x + width > GRID_WIDTH || y + height > GRID_HEIGHT) {
-    throw new QuoteError("Plot is outside the lunar grid.");
+    throw new QuoteError("Plot is outside the map.");
   }
   if (width < MIN_PLOT_SIZE || height < MIN_PLOT_SIZE) {
     throw new QuoteError(`Minimum plot size is ${MIN_PLOT_SIZE} × ${MIN_PLOT_SIZE}.`);

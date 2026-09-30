@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { formatUsd, MIN_PLOT_PIXELS, PIXEL_PRICE } from "@/lib/moon/pricing";
 import { firstLanding } from "@/lib/plots/first-landing";
 import { listPublicPlots } from "@/lib/plots/inventory";
+import { getWorld, plotBody, worldPath } from "@/lib/worlds";
 
 export const revalidate = 300;
 
@@ -30,6 +31,14 @@ export default async function HowItWorksPage() {
           CraterClaim is a public map of digital lunar plots. You are not buying physical
           land, ads, traffic, or rankings. You are leaving a named place on a permanent
           Moon.
+        </p>
+        <p className="mt-4 text-base leading-relaxed text-lunar-silver sm:text-lg">
+          Mars uses the same claim: explore the globe, drag a rectangle, and pay.
+          Olympus Mons, Valles Marineris, Hellas, and the rover sites glow gold.{" "}
+          <Link href="/mars" className="text-electric-white underline underline-offset-4">
+            Open Mars
+          </Link>
+          .
         </p>
 
         <section className="mt-10">
@@ -77,7 +86,9 @@ export default async function HowItWorksPage() {
                 variant="outline"
                 className="min-h-11 cursor-pointer border-white/15"
               >
-                <Link href={`/?focus=${featured.id}`}>See it on the Moon</Link>
+                <Link href={`${worldPath(plotBody(featured))}?focus=${featured.id}`}>
+                  See it on {getWorld(plotBody(featured)).name}
+                </Link>
               </Button>
             </div>
           </section>

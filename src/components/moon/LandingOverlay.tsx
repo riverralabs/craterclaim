@@ -7,6 +7,7 @@ import { SharePlotButton } from "@/components/plot/SharePlotButton";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { formatUsd } from "@/lib/moon/pricing";
 import { useMoonStore } from "@/lib/store/moon-store";
+import { plotBody } from "@/lib/worlds";
 
 export function LandingOverlay() {
   const landingPlotId = useMoonStore((state) => state.landingPlotId);
@@ -73,6 +74,7 @@ export function LandingOverlay() {
               longitude={plot.centerLongitude}
               claimDate={plot.claimDate ?? plot.createdAt}
               zone={plot.zone}
+              body={plotBody(plot)}
               logoUrl={plot.logoUrl}
               websiteUrl={plot.websiteUrl}
               valueLabel={formatUsd(plot.pricePaid ?? plot.quotedPrice)}

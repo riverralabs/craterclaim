@@ -24,7 +24,9 @@ import { hashSecret, newSecret, SECRET_PATTERN, secretsMatch } from "@/lib/plots
 import { normalizeSocial } from "@/lib/plots/social";
 import { visitorId } from "@/lib/plots/visitor";
 import { listLunarFeatures } from "@/lib/moon/features";
+import { MARS_FEATURES } from "@/lib/mars/regions";
 import { recordPlotEvent } from "@/lib/plots/events";
+import { getWorld, plotBody, worldPath, type BodyId } from "@/lib/worlds";
 import type { PlotRecord } from "@/types";
 
 const claimTokenSchema = z.string().regex(SECRET_PATTERN);
@@ -34,6 +36,7 @@ const geometrySchema = z.object({
   y: z.number(),
   width: z.number(),
   height: z.number(),
+  body: z.enum(["moon", "mars"]).optional().default("moon"),
   claimToken: claimTokenSchema.optional(),
 });
 
@@ -103,6 +106,14 @@ function toClient(plot: PlotRecord): PlotRecord {
   };
 }
 
+async function featuresFor(body: BodyId) {
+  return body === "mars" ? MARS_FEATURES : listLunarFeatures();
+}
+
+function landingUrl(origin: string, plot: PlotRecord) {
+  return `${origin}${worldPath(plotBody(plot))}?landing=${plot.id}`;
+}
+
 async function holdsClaim(plotId: string, token: string) {
   const access = await getPlotAccess(plotId);
   return Boolean(access && secretsMatch(token, access.claimTokenHash));
@@ -116,8 +127,9 @@ export async function reservePlot(
 
   try {
     const visitor = await visitorId();
-    const quote = quoteGeometry(parsed.data, await listLunarFeatures());
-    const existing = occupyingPlots(await listOccupyingPlots());
+    const body = parsed.data.body;
+    const quote = quoteGeometry(parsed.data, await featuresFor(body));
+    const existing = occupyingPlots(await listOccupyingPlots()).filter((plot) => plotBody(plot) === body);
     const overlapping = existing.filter((plot) => rectsOverlap(quote, plot));
     const token = parsed.data.claimToken;
     let ownHold: PlotRecord | null = null;
@@ -154,6 +166,7 @@ export async function reservePlot(
     const now = new Date();
     const plot: PlotRecord = {
       id: await nextPlotId(),
+      body,
       x: quote.x,
       y: quote.y,
       width: quote.width,
@@ -261,7 +274,8 @@ export async function prepareLemonCheckout(
       plotId: plot.id,
       name: plot.name ?? plot.id,
       priceUsd: plot.quotedPrice,
-      redirectUrl: `${origin}/?landing=${plot.id}`,
+      redirectUrl: landingUrl(origin, plot),
+      worldName: getWorld(plotBody(plot)).name,
     });
     return { ok: true, data: { mode: "lemon", url } };
   } catch (error) {
@@ -288,7 +302,7 @@ export async function startCheckout(
 
   let priceUsd = plot.quotedPrice;
   try {
-    priceUsd = quoteGeometry(plot, await listLunarFeatures()).price;
+    priceUsd = quoteGeometry(plot, await featuresFor(plotBody(plot))).price;
   } catch (error) {
     const message = error instanceof QuoteError ? error.message : "Could not price this plot.";
     return { ok: false, error: message };
@@ -302,7 +316,8 @@ export async function startCheckout(
         name: plot.name ?? plot.id,
         email,
         priceUsd,
-        redirectUrl: `${origin}/?landing=${plot.id}`,
+        redirectUrl: landingUrl(origin, plot),
+        worldName: getWorld(plotBody(plot)).name,
       });
       return { ok: true, data: { mode: "lemon", url } };
     } catch (error) {

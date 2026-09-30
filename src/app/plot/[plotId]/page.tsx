@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PlotClientFallback } from "@/components/plot/PlotClientFallback";
 import { PlotLanding } from "@/components/plot/PlotLanding";
 import { getPublicPlot } from "@/lib/plots/inventory";
+import { plotSummary } from "@/lib/worlds";
 
 export const revalidate = 300;
 
@@ -19,15 +20,14 @@ export async function generateMetadata({ params }: PlotPageProps): Promise<Metad
   if (!plot) {
     return {
       title: `Plot ${plotId}`,
-      description: "A CraterClaim digital lunar plot.",
+      description: "A CraterClaim digital plot.",
       robots: { index: false, follow: false },
     };
   }
 
   const title = `${plot.name ?? plot.id} — CraterClaim`;
   const description =
-    plot.description ??
-    `A ${plot.zone} digital lunar plot near ${plot.lunarFeature}.`;
+    plot.description ?? plotSummary(plot);
 
   return {
     title: plot.name ?? `Plot ${plot.id}`,

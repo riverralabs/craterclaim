@@ -3,15 +3,17 @@ import Link from "next/link";
 import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
 import { PlotCard } from "@/components/plot/PlotCard";
+import { MARS_FEATURES } from "@/lib/mars/regions";
 import { listLunarFeatures } from "@/lib/moon/features";
 import { listPublicPlots } from "@/lib/plots/inventory";
 import { searchFeatures, searchPlots } from "@/lib/plots/search";
+import { plotBody, worldPath, type BodyId } from "@/lib/worlds";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Search",
-  description: "Find landings and lunar features on CraterClaim.",
+  description: "Find landings and landmarks on the Moon and Mars.",
 };
 
 type SearchPageProps = {
@@ -20,7 +22,11 @@ type SearchPageProps = {
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const { q = "" } = await searchParams;
-  const [plots, features] = await Promise.all([listPublicPlots(), listLunarFeatures()]);
+  const [plots, lunarFeatures] = await Promise.all([listPublicPlots(), listLunarFeatures()]);
+  const features = [
+    ...lunarFeatures.map((feature) => ({ ...feature, body: "moon" as BodyId })),
+    ...MARS_FEATURES.map((feature) => ({ ...feature, body: "mars" as BodyId })),
+  ];
   const plotHits = searchPlots(plots, q);
   const featureHits = searchFeatures(features, q);
   const searched = q.trim().length > 0;
@@ -39,7 +45,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 name="q"
                 defaultValue={q}
                 className="mt-1.5 w-full rounded-xl border border-white/10 bg-space/60 px-3 py-2.5 text-sm outline-none focus-visible:border-violet/60"
-                placeholder="CLM-1001 or Tranquillitatis"
+                placeholder="CLM-1001, Tranquillitatis, or Olympus Mons"
               />
             </label>
             <button
@@ -51,7 +57,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           </form>
 
           {!searched ? (
-            <p className="mt-8 text-lunar-silver">Type a plot ID, name, or mare to search the live map.</p>
+            <p className="mt-8 text-lunar-silver">Type a plot ID, name, or landmark to search the Moon and Mars.</p>
           ) : (
             <>
               <h2 className="font-heading mt-10 text-2xl">Landings</h2>
@@ -70,6 +76,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                       longitude={plot.centerLongitude}
                       claimDate={plot.claimDate ?? plot.createdAt}
                       zone={plot.zone}
+                      body={plotBody(plot)}
                     />
                   ))}
                 </div>
@@ -83,7 +90,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                   {featureHits.map((feature) => (
                     <li key={feature.id}>
                       <Link
-                        href={`/?feature=${feature.id}`}
+                        href={`${worldPath(feature.body)}?feature=${feature.id}`}
                         className="flex min-h-11 items-center justify-between rounded-xl border border-white/10 bg-charcoal/70 px-4 py-3 hover:border-white/20"
                       >
                         <span>
@@ -91,7 +98,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                             {feature.name}
                           </span>
                           <span className="text-xs text-lunar-silver">
-                            {feature.type}
+                            {feature.body === "mars" ? "Mars" : "Moon"} · {feature.type}
                             {feature.isPremium ? " · Premium" : ""}
                           </span>
                         </span>

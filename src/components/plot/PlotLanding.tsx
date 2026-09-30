@@ -7,6 +7,7 @@ import { formatUsd } from "@/lib/moon/pricing";
 import { formatSocial } from "@/lib/plots/social";
 import { siteOrigin } from "@/lib/seo/site";
 import type { PlotRecord } from "@/types";
+import { plotBody, plotSummary } from "@/lib/worlds";
 
 export function PlotLanding({ plot }: { plot: PlotRecord }) {
   const site = siteOrigin();
@@ -17,7 +18,7 @@ export function PlotLanding({ plot }: { plot: PlotRecord }) {
     name,
     url: `${site}/plot/${plot.id}`,
     description:
-      plot.description ?? `A ${plot.zone} digital lunar plot near ${plot.lunarFeature}.`,
+      plot.description ?? plotSummary(plot),
     identifier: plot.id,
     dateCreated: plot.claimDate ?? plot.createdAt,
     image: `${site}/plot/${plot.id}/opengraph-image`,
@@ -51,6 +52,7 @@ export function PlotLanding({ plot }: { plot: PlotRecord }) {
             longitude={plot.centerLongitude}
             claimDate={plot.claimDate ?? plot.createdAt}
             zone={plot.zone}
+            body={plotBody(plot)}
             logoUrl={plot.logoUrl}
             websiteUrl={plot.websiteUrl}
             valueLabel={formatUsd(plot.pricePaid ?? plot.quotedPrice)}

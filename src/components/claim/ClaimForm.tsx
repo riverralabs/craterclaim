@@ -11,6 +11,7 @@ import { prepareLemonCheckout, reservePlot, startCheckout, submitClaim } from "@
 import { rememberOwnedId } from "@/lib/plots/local";
 import { trackEvent } from "@/lib/analytics";
 import { useMoonStore } from "@/lib/store/moon-store";
+import { getWorld, plotBody, worldPath } from "@/lib/worlds";
 import { cn } from "@/lib/utils";
 import type { PlotRecord } from "@/types";
 
@@ -64,8 +65,10 @@ export function ClaimForm() {
   const [lemonUrl, setLemonUrl] = useState<string | null>(null);
   const [checkoutMode, setCheckoutMode] = useState<"pending" | "lemon" | "mock">("pending");
   const [buyerEmail, setBuyerEmail] = useState("");
+  const body = useMoonStore((state) => state.body);
+  const world = getWorld(body);
   const selectionKey = selection
-    ? `${selection.x}:${selection.y}:${selection.width}:${selection.height}`
+    ? `${body}:${selection.x}:${selection.y}:${selection.width}:${selection.height}`
     : "";
 
   useEffect(() => {
@@ -92,12 +95,13 @@ export function ClaimForm() {
   const runReserve = useCallback(async () => {
     const current = useMoonStore.getState().selection;
     if (!current) return { ok: false as const, error: "Select a plot first." };
-    const key = `${current.x}:${current.y}:${current.width}:${current.height}`;
+    const key = `${useMoonStore.getState().body}:${current.x}:${current.y}:${current.width}:${current.height}`;
     return reservePlot({
       x: current.x,
       y: current.y,
       width: current.width,
       height: current.height,
+      body: useMoonStore.getState().body,
       claimToken: readClaimToken(key),
     });
   }, []);
@@ -290,7 +294,7 @@ export function ClaimForm() {
     if (checkout.data.editUrl) {
       sessionStorage.setItem(`cc-edit-${checkout.data.plot.id}`, checkout.data.editUrl);
     }
-    router.push(`/?landing=${checkout.data.plot.id}`);
+    router.push(`${worldPath(plotBody(checkout.data.plot))}?landing=${checkout.data.plot.id}`);
   }
 
   if (!hydrated) {
@@ -305,17 +309,17 @@ export function ClaimForm() {
           Select a plot first.
         </h1>
         <p className="mt-4 leading-relaxed text-lunar-silver">
-          Choose a rectangle on the Moon, then claim it. Digital plots only — not physical
+          Choose a rectangle on {world.name}, then claim it. Digital plots only — not physical
           land, not ads.
         </p>
         <Link
-          href="/"
+          href={worldPath(body)}
           className={cn(
             buttonVariants({ size: "lg" }),
             "mt-8 inline-flex min-h-11 cursor-pointer bg-electric-white px-5 text-space hover:bg-electric-white/90",
           )}
         >
-          Explore the Moon
+          {world.exploreLabel}
         </Link>
       </div>
     );
@@ -407,7 +411,7 @@ export function ClaimForm() {
         ) : null}
 
         <LegalCheck checked={novelty} onChange={setNovelty}>
-          I understand this is a digital novelty plot, not physical lunar land.
+          I understand this is a digital novelty plot, not physical land.
         </LegalCheck>
 
         <LegalCheck checked={consent} onChange={setConsent}>
@@ -451,7 +455,7 @@ export function ClaimForm() {
                 : `Pay ${formatUsd(preview?.quotedPrice ?? selection.price)}`}
           </Button>
           <Button asChild size="lg" variant="outline" className="min-h-11 cursor-pointer border-white/15">
-            <Link href="/">Back to Moon</Link>
+            <Link href={worldPath(body)}>Back to {world.name}</Link>
           </Button>
         </div>
       </form>

@@ -6,6 +6,7 @@ import { HudFrame } from "@/components/ui/hud-frame";
 import { formatUsd, PIXEL_PRICE, TOTAL_PIXELS } from "@/lib/moon/pricing";
 import { useClaimSelect } from "@/hooks/useClaimSelect";
 import { useMoonStore } from "@/lib/store/moon-store";
+import { getWorld } from "@/lib/worlds";
 import { cn } from "@/lib/utils";
 import type { PlotRecord } from "@/types";
 
@@ -31,6 +32,7 @@ export function HomeHud({
   const resetView = useMoonStore((state) => state.resetView);
   const startLanding = useMoonStore((state) => state.startLanding);
   const enterSelect = useClaimSelect();
+  const world = getWorld(useMoonStore((state) => state.body));
   const first = featured ?? plots.find((plot) => plot.status === "active") ?? null;
 
   const landings = plots.filter((plot) => plot.status === "active");
@@ -45,6 +47,8 @@ export function HomeHud({
         <div className="bg-gradient-to-t from-space/90 to-transparent pt-16 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <p className="text-center text-xs font-medium tracking-[0.12em] text-lunar-silver uppercase sm:text-left sm:font-mono sm:text-[10px] sm:tracking-[0.28em]">
+              {world.name}
+              {" · "}
               {selectionMode
                 ? "Drag a rectangle · snaps to 10×10"
                 : "Drag to rotate · pinch to zoom"}
@@ -63,7 +67,7 @@ export function HomeHud({
                   className="min-h-11 cursor-pointer border-white/20 bg-charcoal px-4 text-sm font-semibold tracking-wide text-electric-white uppercase hover:bg-white/10 sm:font-heading sm:text-xs sm:tracking-[0.2em]"
                   onClick={exitSelectMode}
                 >
-                  Rotate Moon
+                  {world.rotateLabel}
                 </Button>
               ) : (
                 <Button
@@ -97,10 +101,10 @@ export function HomeHud({
       <div className="absolute bottom-0 left-0 max-w-lg px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:bottom-8 sm:left-6 sm:px-0">
         <p className="font-mono text-[10px] tracking-[0.34em] text-lunar-silver uppercase">CraterClaim</p>
         <h1 className="font-heading mt-2 text-[clamp(1.85rem,7vw,3.4rem)] leading-[0.95] font-bold tracking-[0.03em] text-electric-white uppercase">
-          Claim your place on the Moon
+          {world.title}
         </h1>
         <p className="mt-3 hidden max-w-sm text-sm leading-relaxed text-lunar-silver sm:block">
-          Digital lunar plots on a public Moon map. Not physical land, and not advertising.
+          {world.subtitle}
         </p>
         <div className="pointer-events-auto mt-4 flex gap-2 sm:hidden">
           <Button
@@ -176,7 +180,7 @@ export function HomeHud({
                   className="min-h-11 flex-1 cursor-pointer border-white/15 text-[10px] tracking-[0.16em] uppercase"
                   onClick={() => startLanding(first.id, false)}
                 >
-                  See on Moon
+                  {world.seeOnLabel}
                 </Button>
               </div>
             </div>
@@ -195,7 +199,7 @@ export function HomeHud({
               className="min-h-11 w-full cursor-pointer bg-electric-white font-heading text-xs tracking-[0.24em] text-space uppercase hover:bg-electric-white/90"
               onClick={enterExploreMode}
             >
-              Explore the Moon
+              {world.exploreLabel}
             </Button>
             <Button
               type="button"

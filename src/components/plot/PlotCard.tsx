@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { HudFrame } from "@/components/ui/hud-frame";
 import { formatLatLng } from "@/lib/moon/coordinates";
 import { websiteHref } from "@/lib/plots/website";
-import type { Zone } from "@/types";
+import type { BodyId, Zone } from "@/types";
+import { getWorld, worldPath } from "@/lib/worlds";
 import { cn } from "@/lib/utils";
 
 type PlotCardProps = {
@@ -19,6 +20,7 @@ type PlotCardProps = {
   websiteUrl?: string | null;
   valueLabel?: string;
   variant?: "card" | "panel";
+  body?: BodyId;
   onViewPlot?: () => void;
 };
 
@@ -64,13 +66,15 @@ export function PlotCard({
   websiteUrl,
   valueLabel,
   variant = "card",
+  body = "moon",
   onViewPlot,
 }: PlotCardProps) {
+  const world = getWorld(body);
   const premium = zone === "premium";
   const glow = premium
     ? "shadow-[0_0_28px_rgba(224,184,79,0.45)]"
     : "shadow-[0_0_20px_rgba(183,188,198,0.22)]";
-  const moonHref = `/?focus=${plotId}`;
+  const moonHref = `${worldPath(body)}?focus=${plotId}`;
   const landingHref = websiteUrl ? websiteHref(websiteUrl) : `/plot/${plotId}`;
   const landingExternal = Boolean(websiteUrl);
 
@@ -104,7 +108,7 @@ export function PlotCard({
               premium ? "text-gold" : "text-lunar-silver",
             )}
           >
-            {premium ? "Premium zone" : "Standard zone"}
+            {world.name} · {premium ? "Premium zone" : "Standard zone"}
           </p>
         </div>
       </div>

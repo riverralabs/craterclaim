@@ -8,7 +8,7 @@ export function searchPlots(plots: PlotRecord[], query: string) {
   const q = normalizeQuery(query);
   if (!q) return plots;
   return plots.filter((plot) => {
-    const hay = [plot.id, plot.name, plot.lunarFeature, plot.socialHandle, plot.websiteUrl]
+    const hay = [plot.id, plot.name, plot.lunarFeature, plot.body, plot.socialHandle, plot.websiteUrl]
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
@@ -16,7 +16,7 @@ export function searchPlots(plots: PlotRecord[], query: string) {
   });
 }
 
-export function searchFeatures(features: LunarFeature[], query: string) {
+export function searchFeatures<T extends LunarFeature>(features: T[], query: string) {
   const q = normalizeQuery(query);
   if (!q) return features;
   return features.filter((feature) =>

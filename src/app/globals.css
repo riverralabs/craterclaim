@@ -200,6 +200,10 @@
     object-position: 50% 48%;
   }
 
+  .moon-still-orb.still-west img {
+    margin-left: 0;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

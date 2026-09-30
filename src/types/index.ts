@@ -1,6 +1,17 @@
 export type Zone = "standard" | "premium";
 
-export type LunarFeatureType = "mare" | "crater" | "oceanus" | "pole" | "other";
+export type BodyId = "moon" | "mars";
+
+export type LunarFeatureType =
+  | "mare"
+  | "crater"
+  | "oceanus"
+  | "pole"
+  | "volcano"
+  | "canyon"
+  | "basin"
+  | "plain"
+  | "other";
 
 export interface LunarFeature {
   id: string;
@@ -39,6 +50,8 @@ export type PlotStatus = "reserved" | "payment_pending" | "active" | "suspended"
 
 export interface PlotRecord {
   id: string;
+  /** Which globe this rectangle belongs to. Missing values are Moon plots. */
+  body?: BodyId;
   x: number;
   y: number;
   width: number;
